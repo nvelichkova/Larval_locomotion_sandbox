@@ -1,0 +1,3539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Larval locomotion sandbox</title>
+<!-- See README.md for the full model description, parameter provenance and limitations. -->
+<style>
+:root{--bg:#faf9f7;--panel:#fff;--line:#e3e0d9;--tx:#2c2c2a;--tx2:#6b6a65;
+  --teal:#1d9e75;--purple:#7f77dd;--amber:#ba7517;--coral:#d85a30;--right:430px}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#17171a;--panel:#1f1f23;--line:#33333a;--tx:#e8e6e1;--tx2:#9b9a94}}
+@media (max-width:1250px){:root{--right:320px}}
+@media (max-width:1500px){.controls{grid-template-columns:1fr 1fr var(--right)}}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--tx);overflow:hidden;
+  font:12px/1.3 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  display:grid;grid-template-rows:auto auto minmax(0,1fr) auto auto;gap:6px;padding:6px 10px 8px}
+header{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+h1{margin:0;font-size:14px;font-weight:500;margin-right:4px}
+.sep{width:1px;height:17px;background:var(--line);margin:0 3px}
+.lbl{font-size:10px;color:var(--tx2);text-transform:uppercase;letter-spacing:.05em}
+.spacer{flex:1}
+.controls{display:grid;grid-template-columns:1fr 1fr 1fr var(--right);gap:6px;align-items:start}
+.controls.hide{display:none}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 9px}
+.panel h2{margin:0 0 3px;font-size:9.5px;font-weight:500;color:var(--tx2);
+  text-transform:uppercase;letter-spacing:.06em}
+.g2,.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:0 14px}
+.row{display:flex;align-items:center;gap:6px;height:19px}
+.row label{flex:1 1 auto;min-width:0;display:flex;justify-content:space-between;gap:5px;
+  font-size:10.5px;color:var(--tx2);line-height:1;white-space:nowrap;overflow:hidden}
+.row label span{overflow:hidden;text-overflow:ellipsis}
+.row label b{font-weight:500;color:var(--tx);font-variant-numeric:tabular-nums;flex:0 0 auto}
+.row label[title]{cursor:help}
+.row.auto label{color:var(--amber)}
+input[type=range]{accent-color:var(--teal);margin:0;height:10px;display:block}
+.row input[type=range]{flex:0 0 72px;width:72px}
+.controls.single{grid-template-columns:1fr}
+.controls.single .g2,.controls.single .g3{grid-template-columns:repeat(auto-fit,minmax(172px,1fr))}
+/* "All" dissolves the panel boxes so every row packs into one flat grid:
+   four separate panels waste height because the tallest sets the row height
+   and the short ones leave dead space underneath */
+.controls.all{grid-template-columns:repeat(auto-fit,minmax(176px,1fr));
+  background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 9px;
+  gap:0 14px;align-items:center}
+.controls.all .panel{display:contents}
+.controls.all .g2,.controls.all .g3{display:contents}
+.controls.all .panel h2{display:none}
+.controls.all .seg{grid-column:span 1}
+/* grouping cue that costs no height: a tinted rule down the left of each row */
+.controls.all .panel:nth-of-type(1) .row{border-left:2px solid #1d9e75}
+.controls.all .panel:nth-of-type(2) .row{border-left:2px solid #378add}
+.controls.all .panel:nth-of-type(3) .row{border-left:2px solid #7f77dd}
+.controls.all .panel:nth-of-type(4) .row{border-left:2px solid #ba7517}
+.controls.all .panel:nth-of-type(5) .row{border-left:2px solid #d85a30}
+.controls.all .row{padding-left:5px}
+.tab[data-tab="0"]{border-bottom:2px solid #1d9e75}
+.tab[data-tab="1"]{border-bottom:2px solid #378add}
+.tab[data-tab="2"]{border-bottom:2px solid #7f77dd}
+.tab[data-tab="3"]{border-bottom:2px solid #ba7517}
+.tab[data-tab="4"]{border-bottom:2px solid #d85a30}
+.panel.off{display:none}
+.tab{font-size:10px;padding:1px 6px}
+button{font:inherit;font-size:10.5px;padding:2px 7px;border-radius:5px;cursor:pointer;
+  border:1px solid var(--line);background:transparent;color:var(--tx)}
+button:hover{background:var(--bg)}
+button.on{background:var(--teal);border-color:var(--teal);color:#fff}
+#fname{font:inherit;font-size:10.5px;width:132px;padding:2px 6px;border-radius:5px;
+  border:1px solid var(--line);background:transparent;color:var(--tx)}
+main{display:grid;grid-template-columns:minmax(0,1fr) var(--right);gap:6px;min-height:0}
+.col{display:grid;grid-template-rows:1fr 1fr;gap:6px;min-height:0}
+.cwrap{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:3px;min-height:0;position:relative}
+.cwrap canvas{display:block;width:100%;height:100%;border-radius:4px}
+.tag{position:absolute;top:5px;right:8px;font-size:9px;color:var(--tx2);
+  letter-spacing:.04em;text-transform:uppercase;pointer-events:none}
+.scrubbar{display:flex;align-items:center;gap:8px;background:var(--panel);
+  border:1px solid var(--line);border-radius:6px;padding:3px 9px}
+.scrubbar input[type=range]{flex:1;accent-color:var(--purple)}
+.scrubbar .lbl{min-width:58px;text-align:right;font-variant-numeric:tabular-nums;
+  text-transform:none;letter-spacing:0;font-size:11px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:4px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+.stat{height:34px;overflow:hidden}
+.stat span{display:block;font-size:8px;color:var(--tx2);text-transform:uppercase;letter-spacing:.03em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* fixed height and no wrapping: a value that wrapped to two lines grew the
+   stats row, which shrank the arena, which changed its aspect ratio - and
+   that used to wipe the trail. The layout must not depend on the text. */
+.stat b{display:block;font-size:12.5px;font-weight:500;font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
+/* ---- batch ------------------------------------------------------------- */
+#batchui{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:6px;min-height:0}
+#batchui[hidden]{display:none}
+.bpanel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 9px}
+.brow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-height:22px}
+.brow+.brow{margin-top:5px}
+.bgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:6px;min-height:0}
+.btable{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  overflow:auto;position:relative}
+.btable table{border-collapse:collapse;width:100%;font-size:10.5px;
+  font-variant-numeric:tabular-nums}
+.btable th{position:sticky;top:0;background:var(--panel);z-index:1;text-align:right;
+  padding:4px 7px;font-weight:500;font-size:9px;color:var(--tx2);text-transform:uppercase;
+  letter-spacing:.04em;cursor:pointer;white-space:nowrap;border-bottom:1px solid var(--line)}
+.btable th:first-child,.btable td:first-child{text-align:left}
+.btable th.srt{color:var(--teal)}
+.btable td{padding:2px 7px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+.btable tbody tr{cursor:pointer}
+.btable tbody tr:hover{background:rgba(29,158,117,.09)}
+.btable tbody tr.pick{background:rgba(127,119,221,.14)}
+.btable .sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;
+  vertical-align:baseline}
+.btable .empty{padding:14px;color:var(--tx2);text-align:center;font-size:11px}
+.chk{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--tx2);cursor:pointer}
+.chk input{accent-color:var(--teal);margin:0}
+#batchui input[type=text],#batchui input[type=number]{background:var(--bg);color:var(--tx);
+  border:1px solid var(--line);border-radius:5px;padding:2px 6px;font:inherit;font-size:11px}
+#batchui input[type=text]{min-width:150px}
+#batchui input[type=number]{width:62px}
+#batchui select{background:var(--bg);color:var(--tx);border:1px solid var(--line);
+  border-radius:5px;padding:2px 4px;font:inherit;font-size:11px;max-width:150px}
+.bar{flex:1 1 120px;height:5px;border-radius:3px;background:var(--line);overflow:hidden;min-width:80px}
+.bar i{display:block;height:100%;width:0;background:var(--teal);transition:width .12s linear}
+.warn{color:var(--amber)}
+header select{background:var(--panel);color:var(--tx);border:1px solid var(--line);
+  border-radius:6px;padding:2px 4px;font:inherit;font-size:11px;max-width:200px}
+#b_plan,#b_stat,#b_note{text-transform:none;letter-spacing:0;font-size:10.5px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Larval locomotion sandbox</h1>
+  <span class="lbl">genotype</span>
+  <button id="g_rov" class="on" title="forR. Rovers have longer foraging path lengths than sitters on a yeast patch and forage between patches (Sokolowski 1980; Osborne et al. 2001).">Rover</button>
+  <button id="g_sit" title="forS. Sitters have shorter trails and forage within patches.">Sitter</button>
+  <span class="sep"></span>
+  <span class="lbl">food</span>
+  <button id="s_agar" class="on">Agar</button>
+  <button id="s_suc">Sucrose</button>
+  <button id="s_yeast">Yeast</button>
+  <span class="sep"></span>
+  <span class="lbl">arena</span>
+  <button id="m_hom" class="on" title="Whole arena is the selected substrate.">Uniform</button>
+  <button id="m_p1" title="One central food patch on agar — the simplest patch-leaving assay.">1 patch</button>
+  <button id="m_p2" title="Two circular food patches on agar — the geometry used by Wosniack et al. 2022 (radius 25 mm).">2 patches</button>
+  <button id="m_p4" title="Four patches equidistant from the centre, as in Dhawan et al. 2025.">4 patches</button>
+  <select id="asz" title="Arena dimensions. Published sizes fall into two groups: small caps and dishes for kinematics, where the animal rarely meets a wall, and large square arenas for navigation and foraging, where edge occupancy is part of what is measured.">
+    <option value="">size&hellip;</option>
+    <option value="100x50">100 &times; 50 mm &middot; sandbox default</option>
+    <option value="15x15">15 &times; 15 mm &middot; agar cap, kinematics (Heckscher 2012)</option>
+    <option value="93x93">93 &times; 93 mm &middot; Petri dish (Ohyama 2013)</option>
+    <option value="240x240">240 &times; 240 mm &middot; foraging (Wosniack 2022)</option>
+    <option value="250x250">250 &times; 250 mm &middot; high throughput (Ohyama 2013)</option>
+  </select>
+  <button id="mix" title="Heterogeneous arena: alternate patches carry the other food, so patch quality differs. Needed to test comparative memory - in a homogeneous arena the published history effect is absent by definition.">Mixed</button>
+  <span class="sep"></span>
+  <button id="w_rev" class="on" title="Head touch elicits backward locomotion (Takagi et al. 2017).">Head-touch reverse</button>
+  <button id="w_cast">Stop &amp; cast</button>
+  <span class="sep"></span>
+  <button id="spont" class="on">Spontaneous</button>
+  <button id="pp">Pause</button>
+  <button id="bcast">Cast</button>
+  <button id="brev">Reverse</button>
+  <button id="rst">Reset</button>
+  <input id="fname" type="text" placeholder="file name prefix"
+    title="Prefix for exported files. Blank uses genotype_substrate_arena_timestamp. Browsers cannot be given a folder by a page; where the browser supports it a save picker opens so you can choose one, otherwise the file lands in your downloads folder.">
+  <button id="csv" title="Trajectory as CSV (opens directly in Excel): time, centroid, heading, all 12 spine points, per-segment contraction, contact and intersegmental bend.">Export CSV</button>
+  <button id="turns" title="One row per completed turn.">Turns</button>
+  <button id="visits" title="One row per patch visit: residence, patch quality and the quality of the previous patch. The unit of analysis for the comparative-memory effect.">Visits</button>
+  <button id="figpdf" title="The trajectory so far as a vector PDF figure, with the arena, its patches, a scale bar and the genotype and substrate. Real paths, not a screenshot. Shift-click for SVG. Exports what the replay holds, which is the last 3000 s of a longer run.">Figure</button>
+  <button id="imp" title="Load a trajectory CSV: this sandbox's own export, or foreign spine tracking with a time column and x/y columns per midline point. Replaces the replay buffer.">Import</button>
+  <input type="file" id="impfile" accept=".csv,.tsv,.txt,text/csv" style="display:none">
+  <button id="bbtn" title="Run many simulations with different parameter values and compare them. Uses every core the browser will give it.">Batch</button>
+  <span class="spacer"></span>
+  <span class="lbl">controls</span>
+  <button class="tab on" data-tab="all">All</button>
+  <button class="tab" data-tab="0">Peristalsis</button>
+  <button class="tab" data-tab="1">Contact</button>
+  <button class="tab" data-tab="2">Turning</button>
+  <button class="tab" data-tab="3">Boundary</button>
+  <button class="tab" data-tab="4">Foraging</button>
+  <button id="hide">Hide controls</button>
+</header>
+
+<div class="controls all" id="ctl">
+  <div class="panel">
+    <h2>Peristalsis</h2>
+    <div class="g2">
+      <div class="row auto"><label title="Set automatically from the local substrate in patchy arenas. 1.07 ± 0.12 s (Sun et al. 2022); normal range 0.6–2 s (Liu et al. 2023)."><span>Stride period</span><b id="v_per">1.07</b></label>
+        <input type="range" id="per" min="0.6" max="2" step="0.01" value="1.07"></div>
+      <div class="row"><label title="0.09 ± 0.01 s per segment (Sun et al. 2022). Waves start at the rearmost abdominal segments and end at T2 or T1 (Lahiri et al. 2011)."><span>Interseg. lag</span><b id="v_del">90</b></label>
+        <input type="range" id="del" min="15" max="200" step="1" value="90"></div>
+      <div class="row"><label title="Swing period of one segment. Duration ÷ delay = how many segments are released at once."><span>Contract. dur</span><b id="v_dur">170</b></label>
+        <input type="range" id="dur" min="100" max="700" step="5" value="600"></div>
+      <div class="row"><label title="Peak shortening of a segment. Stride length is NOT imposed — it emerges. Targets: 0.70 mm (Sun et al. 2022) ≈ 0.13 body lengths/wave (Lahiri et al. 2011)."><span>Contract. amp</span><b id="v_amp">0.90</b></label>
+        <input type="range" id="amp" min="0.1" max="0.7" step="0.01" value="0.50"></div>
+      <div class="row"><label title="Probability the relay reaches the next segment. Below 1 the wave can die mid-body."><span>Relay reliab.</span><b id="v_rel">1.00</b></label>
+        <input type="range" id="rel" min="0.6" max="1" step="0.005" value="1"></div>
+      <div class="row"><label title="Real-time multiplier. Useful for accumulating foraging statistics."><span>Sim speed</span><b id="v_spd">1.0</b></label>
+        <input type="range" id="spd" min="0.25" max="20" step="0.25" value="1"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Substrate contact</h2>
+    <div class="g2">
+      <div class="row"><label title="How far contact drops during swing. Protopodia sequester into a travelling pocket, releasing the segment (Booth et al. 2024). At 0 the larva cannot crawl at all."><span>Swing release</span><b id="v_lift">0.90</b></label>
+        <input type="range" id="lift" min="0" max="1" step="0.01" value="0.9"></div>
+      <div class="row"><label title="Backward:forward friction ratio from denticle A–P polarity. Sun et al. 2022 use μ_bf = 10."><span>Friction μ</span><b id="v_mu">10.0</b></label>
+        <input type="range" id="mu" min="1" max="30" step="0.5" value="10"></div>
+      <div class="row"><label title="How far the head and front segments release during a sweep. Abdomen and tail stay planted (Lahiri et al. 2011)."><span>Ant. release</span><b id="v_hl">0.85</b></label>
+        <input type="range" id="hl" min="0" max="1" step="0.01" value="0.85"></div>
+      <div class="row"><label title="Number of anterior boundaries that bend, from T1/T2 backwards. Asymmetry is confined to thorax and anterior abdomen."><span>Bend extent</span><b id="v_ext">4</b></label>
+        <input type="range" id="ext" min="2" max="6" step="1" value="4"></div>
+      <div class="row"><label title="Boundaries the bend migrates posteriorly per segment-length crawled, after an accepted sweep. 1.0 = the bend stays fixed in the world (pure follow-the-leader). Measured in mech_test3.js: 0.6 realises ~90% of the commanded sweep, 1.5 only ~30%. Ignored when Bend speed is above zero."><span>Bend migrate</span><b id="v_migK">0.60</b></label>
+        <input type="range" id="migK" min="0.2" max="2" step="0.05" value="0.6"></div>
+      <div class="row auto"><label title="DEFAULT 1. 0 conserves the commanded articulation while any of the profile is still on the body, so what remains is amplified as it runs off the tail - which leaves the bend peaked at A7/A8 and makes the model's bend distribution the INVERSE of a real larva's (r = -0.39 against hand-labelled 12-point data). 1 lets the articulation leave with the profile. Measured against real per-boundary bend: r = +0.78, RMS 0.148 (8i). Costs about 1.6 deg of turn amplitude and nothing else."><span>Bend exits</span><b id="v_bexit">1.00</b></label>
+        <input type="range" id="bexit" min="0" max="1" step="1" value="1"></div>
+      <div class="row auto"><label title="Boundaries the bend migrates per SECOND, independent of crawling. 0 keeps the original coupling to distance crawled. Tracking of real larvae puts the bend at mid-body 0.3-0.4 s after the cast peak, having crawled 0.04-0.12 segment lengths - so migration is driven by time, not by forward progress. 7.9 reproduces that lag."><span>Bend speed</span><b id="v_migV">0.00</b></label>
+        <input type="range" id="migV" min="0" max="20" step="0.1" value="0"></div>
+      <div class="row"><label title="How fast the weathervane bend follows its target during a run. Does not affect turns."><span>Bend relax</span><b id="v_sr">0.70</b></label>
+        <input type="range" id="sr" min="0.1" max="3" step="0.05" value="0.7"></div>
+      <div class="row"><label title="Standard deviation of a body-wide postural curvature, in degrees of total body bend, spread equally over all ten boundaries. Real crawling carries a persistent body-wide bend that this model lacked entirely - its crawl was geometrically straight, which is why its runs were straight lines where real trajectories curve (8j, 8k). 0 restores that. Unlike the weathervane this is not an oscillator: it wanders and persists."><span>Posture sd</span><b id="v_cbs">25.00</b></label>
+        <input type="range" id="cbs" min="0" max="45" step="0.5" value="25"></div>
+      <div class="row"><label title="GUESSED, NOT MEASURED. Chance that a reversal ends in a head cast rather than the larva simply crawling on. Before this was added every reversal ended in a cast, so the chance of carrying straight on was zero, and the habituation hierarchy's top tier was really 'reversal AND turn' rather than 'reversal'. Tracking cannot supply the number: the boundary is where FIM-Track fails, with most tracking losses occurring within 2 mm of the edge."><span>Reverse-to-turn</span><b id="v_rvp">0.70</b></label>
+        <input type="range" id="rvp" min="0" max="1" step="0.05" value="0.7"></div>
+      <div class="row"><label title="Mouth-hook anchoring. Larvae plant their mouth hooks as the forward wave reaches the anterior, holding the newly advanced head while the next wave draws the body up to it. Without this the head is most RELEASED at the peak of its own contraction (8m), which is the opposite of what the animal does. Extra contact weight at the head, in proportion to T1's contraction. Forward crawling only."><span>Mouth hooks</span><b id="v_mh">1.00</b></label>
+        <input type="range" id="mh" min="0" max="6" step="0.1" value="1"></div>
+      <div class="row"><label title="How far the body deflects along a boundary while the head is pressing into it, in degrees of total body bend at a full head-on approach, falling to zero for a glancing one. A head that cannot advance slides along the edge rather than being turned away from it. Measured without this (8l) the model aligns with the wall in 5% of its near-wall frames against a geometric null of 23%, so the wall was driving the body perpendicular. 0 restores that."><span>Wall deflect</span><b id="v_wdf">0.00</b></label>
+        <input type="range" id="wdf" min="0" max="60" step="1" value="0"></div>
+      <div class="row"><label title="Correlation time of the postural curvature, in seconds - how long a curve is held before it wanders away. Tracking puts real crawl bend's persistence at roughly 1-3 s (autocorrelation falls below 0.2 between 8 and 22 frames at 10 fps). Larger values give longer, smoother arcs."><span>Posture tau</span><b id="v_cbt">2.00</b></label>
+        <input type="range" id="cbt" min="0.2" max="8" step="0.1" value="2"></div>
+      <div class="row"><label title="Half-spacing of the two ventral denticle bands at the widest point, in mm, tapering to head and tail. The rigid placement is solved from these contacts rather than from the midline, so the body can tell its left side from its right. The belts are paramedian, so this is less than the body half-width of about 0.4. Default 0: both rows collapse onto the midline and the fit is bit-for-bit the original line body, so every measurement in README 6a, 8c and 10 still stands. Drag to about 0.22 to see the bands. Width alone costs roughly 8% of turn amplitude and changes the rotation profile not at all (8f), so it is off unless you want it."><span>Denticle rows</span><b id="v_rsp">0.00</b></label>
+        <input type="range" id="rsp" min="0" max="0.5" step="0.01" value="0"></div>
+      <div class="row auto"><label title="Bilateral grip asymmetry. On the inside of a bend the ventral cuticle is compressed, so the denticle bands bunch and grip harder per unit path length; outside they are stretched apart. MEASURED AND REFUTED (8f): a 39:1 grip ratio across the bent segments moves the fitted rotation by under 1%, because both rows are parallel offsets of the same midline and the effect is only second order in row spacing over body length. A best-fit placement has residuals, not forces, so there is nothing for asymmetric friction to push against. Kept as an instrument, not a fix. Needs Denticle rows above 0."><span>Grip asym</span><b id="v_asym">0.00</b></label>
+        <input type="range" id="asym" min="0" max="2" step="0.01" value="0"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Turning</h2>
+    <div class="g3">
+      <div class="row"><label title="Peak commanded head deflection of the first sweep. Casts scored above 37° (Davies et al. 2015)."><span>Cast amp</span><b id="v_ca">55</b></label>
+        <input type="range" id="ca" min="15" max="110" step="1" value="55"></div>
+      <div class="row"><label title="Second sweep larger than the first (Zhao et al. 2017)."><span>Cast growth</span><b id="v_cg">1.30</b></label>
+        <input type="range" id="cg" min="1" max="2" step="0.01" value="1.3"></div>
+      <div class="row"><label title="1-cast turns succeed ~50% (Zhao et al. 2017)."><span>Accept prob</span><b id="v_acc">0.50</b></label>
+        <input type="range" id="acc" min="0.1" max="1" step="0.01" value="0.5"></div>
+      <div class="row auto"><label title="Set automatically from the local substrate in patchy arenas, from measured turns/min (Wosniack et al. 2022)."><span>Mean run</span><b id="v_rt">22.6</b></label>
+        <input type="range" id="rt" min="2" max="60" step="0.5" value="22.6"></div>
+      <div class="row auto"><label title="Set automatically from the local substrate. Larvae pause much more on yeast, probably to feed (Wosniack et al. 2022)."><span>Pause frac</span><b id="v_pf">0.00</b></label>
+        <input type="range" id="pf" min="0" max="0.7" step="0.01" value="0"></div>
+      <div class="row"><label title="Low-amplitude head casts that do not interrupt the run (Gomez-Marin &amp; Louis 2014)."><span>Weathervane</span><b id="v_wv">8</b></label>
+        <input type="range" id="wv" min="0" max="25" step="0.5" value="8"></div>
+      <div class="row"><label title="Peak probability of turning toward the patch centre at the food–no-food interface (Wosniack et al. 2022). 0.5 = no bias. Only applies to food patches: agar–agar borders produce no bias."><span>Inward bias</span><b id="v_pb">0.95</b></label>
+        <input type="range" id="pb" min="0.5" max="1" step="0.01" value="0.95"></div>
+      <div class="row"><label title="Individual turning handedness. H ><span>0.5 biases counter-clockwise, H < 0.5 clockwise (Wosniack et al. 2022). Used when no inward bias applies.">Handedness H</span><b id="v_hd">0.50</b></label>
+        <input type="range" id="hd" min="0" max="1" step="0.01" value="0.5"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Boundary, zones &amp; local search</h2>
+    <div class="g3">
+      <div class="row"><label title="Desensitisation time constant of the wall response under sustained contact. Wild type 18.9 s; rut 5.2 s, dnc 14.3 s, cam0 25.6 s (vibration habituation, Jovanic lab 2021/2023). Response steps down reversal to turn to pause to none."><span>τ des</span><b id="v_tdes">18.9</b></label>
+        <input type="range" id="tdes" min="1" max="60" step="0.1" value="18.9"></div>
+      <div class="row"><label title="Re-sensitisation time constant once clear of the wall. Wild type 5.3 s; rut 3.6, dnc 9.8, cam0 6.5. Recovery accelerates with repetition: by the fourth contact the response returns in under a second."><span>τ res</span><b id="v_tres">5.3</b></label>
+        <input type="range" id="tres" min="0.5" max="30" step="0.1" value="5.3"></div>
+      <div class="row"><label title="Dose of one wall touch, in equivalent seconds of sustained stimulation. The repeated-pulse protocol steps the response down per pulse even with long gaps, so a brief touch must carry more than its own duration. 10 s pulses at tau_des 18.9 s gave a 0.59 factor per pulse."><span>Contact dose</span><b id="v_cdose">3.0</b></label>
+        <input type="range" id="cdose" min="0" max="12" step="0.1" value="3"></div>
+      <div class="row"><label title="How strongly repeated contacts speed up recovery. 0 = fixed tau_res."><span>Recovery gain</span><b id="v_rgain">0.63</b></label>
+        <input type="range" id="rgain" min="0" max="1.2" step="0.01" value="0.63"></div>
+      <div class="row"><label title="Return trips within this distance of the patch edge count as part of the same visit, so a brief excursion is not logged as a separate visit. Dhawan et al. use 3 cm; that threshold covered most return trips."><span>Visit merge</span> <b id="v_vmerge">30</b></label>
+        <input type="range" id="vmerge" min="0" max="60" step="1" value="30"></div>
+      <div class="row"><label title="A visit also closes after this long off the patch, whatever the distance. Needed because in an arena small relative to its patches the merge distance may be unreachable."><span>Merge timeout</span> <b id="v_vtime">60</b></label>
+        <input type="range" id="vtime" min="5" max="300" step="5" value="60"></div>
+      <div class="row"><label title="Width of the scored border zone. Edge occupancy is a measured quantity in the foraging literature, so it is reported rather than assumed away."><span>Border zone</span><b id="v_bw">4</b></label>
+        <input type="range" id="bw" min="1" max="20" step="0.5" value="4"></div>
+      <div class="row"><label title="Local search after leaving a patch: elevated turning centred on the exit point, lasting minutes (Finding a path, JEB 2025). 0 disables it."><span>Local search</span><b id="v_lsd">120</b></label>
+        <input type="range" id="lsd" min="0" max="300" step="5" value="120"></div>
+      <div class="row"><label title="Probability a turn during local search is aimed back at the exit point. Default 0 because measuring it showed aiming HURTS: undirected area-restricted search gave 40% patch residence against 27% when aiming was on. Circling a place is not the same as steering at it."><span>Return bias</span><b id="v_lsb">0.00</b></label>
+        <input type="range" id="lsb" min="0" max="1" step="0.01" value="0"></div>
+      <div class="row"><label title="Run duration is multiplied by this during local search, and stride period divided by it, so the larva turns more and moves faster - larvae speed up during local search rather than slowing down."><span>Search int</span><b id="v_lsi">0.35</b></label>
+        <input type="range" id="lsi" min="0.1" max="1" step="0.01" value="0.35"></div>
+      <div class="row"><label title="Published geometry: two patches of radius 25 mm (Wosniack et al. 2022); four of radius 17.5 mm, 62.5 mm from centre in a 250 mm arena (Dhawan et al. 2025)."><span>Patch radius</span><b id="v_pr">18</b></label>
+        <input type="range" id="pr" min="4" max="45" step="1" value="18"></div>
+      <div class="row"><label title="Arena width in mm. Larva is 4 mm. Published arenas: 240x240 mm (Wosniack et al. 2022), 250x250 mm (Ohyama et al. 2013), 93 mm dish, 15 mm agar cap for kinematics."><span>Arena W</span><b id="v_aw">100</b></label>
+        <input type="range" id="aw" min="10" max="300" step="1" value="100"></div>
+      <div class="row"><label title="Arena height in mm, set independently of the window. The arena is letterboxed in the panel, so a square arena leaves space at the sides rather than being stretched to fit."><span>Arena H</span><b id="v_ah">50</b></label>
+        <input type="range" id="ah" min="10" max="300" step="1" value="50"></div>
+      <div class="row"><label title="Opacity of the accumulated centroid track."><span>Trail opacity</span><b id="v_tr">0.60</b></label>
+        <input type="range" id="tr" min="0.05" max="1" step="0.05" value="0.6"></div>
+      <div class="row"><label title="Random seed. Reset replays the same run exactly; change it for an independent replicate. Border occupancy and patch residence vary a lot between seeds, so compare conditions across several."><span>Seed</span><b id="v_seed">1</b></label>
+        <input type="range" id="seed" min="1" max="200" step="1" value="1"></div>
+    </div>
+    <div class="seg" style="margin-top:4px">
+      <button id="h_wt" class="on" title="Wild type: tau_des 18.9 s, tau_res 5.3 s.">WT</button>
+      <button id="h_rut" title="rutabaga: tau_des 5.2 s, tau_res 3.6 s - habituates fast.">rut</button>
+      <button id="h_dnc" title="dunce: tau_des 14.3 s, tau_res 9.8 s.">dnc</button>
+      <button id="h_cam" title="cam0: tau_des 25.6 s, tau_res 6.5 s - habituates slowly.">cam0</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Patch leaving &amp; memory</h2>
+    <div class="g3">
+      <div class="row"><label title="Base drift of the leaving decision variable. Higher drift means evidence for leaving accumulates faster, so residence is shorter."><span>Drift &mu;</span> <b id="v_oumu">0.030</b></label>
+        <input type="range" id="oumu" min="0.005" max="0.3" step="0.005" value="0.03"></div>
+      <div class="row"><label title="How much patch quality lowers the drift. Drift was lower on fructose than on agar, so better food is exploited longer (Dhawan et al. 2025/26). 0 removes any quality effect."><span>Quality effect</span> <b id="v_ouq">0.75</b></label>
+        <input type="range" id="ouq" min="0" max="0.95" step="0.01" value="0.75"></div>
+      <div class="row"><label title="Leak: decay of accumulated evidence. A leak term was needed to fit heterogeneous environments and improved the fit there, but not in homogeneous ones."><span>Leak &lambda;</span> <b id="v_oulk">0.004</b></label>
+        <input type="range" id="oulk" min="0" max="0.05" step="0.001" value="0.004"></div>
+      <div class="row"><label title="Noise amplitude of the accumulator. This is what makes residence a distribution rather than a fixed duration."><span>Noise</span> <b id="v_ounz">0.08</b></label>
+        <input type="range" id="ounz" min="0" max="0.5" step="0.01" value="0.08"></div>
+      <div class="row"><label title="Strength of the comparative effect: drift is scaled by (remembered quality - current quality). A good patch after a poor one is exploited longer and vice versa; equal quality gives no effect. 0 disables memory."><span>Comparison</span> <b id="v_ocmp">1.20</b></label>
+        <input type="range" id="ocmp" min="0" max="3" step="0.05" value="1.2"></div>
+      <div class="row"><label title="How long the memory of the last patch lasts. Larvae took about 10 minutes to travel between patches and the effect still showed, so it persists over minutes."><span>Memory &tau; (s)</span> <b id="v_tmem">600</b></label>
+        <input type="range" id="tmem" min="10" max="1800" step="10" value="600"></div>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="cwrap"><canvas id="arena"></canvas><div class="tag">arena &middot; centroid track</div></div>
+  <div class="col">
+    <div class="cwrap"><canvas id="kymo"></canvas><div class="tag">contraction &middot; release</div></div>
+    <div class="cwrap"><canvas id="jang"></canvas><div class="tag">intersegmental bend</div></div>
+  </div>
+</main>
+
+<section id="batchui" hidden>
+  <div class="bpanel">
+    <div class="brow">
+      <span class="lbl">vary</span>
+      <select id="b_p1"></select>
+      <input id="b_v1" type="text" value="0, 1.2, 3, 6"
+        title="Values to try, comma separated. One condition per value.">
+      <span class="lbl">and</span>
+      <select id="b_p2"></select>
+      <input id="b_v2" type="text" placeholder="optional, e.g. 0.5, 1"
+        title="A second parameter, giving a grid of conditions.">
+      <span class="sep"></span>
+      <span class="lbl">seeds</span>
+      <input id="b_seeds" type="number" min="1" max="200" value="20"
+        title="Independent runs per condition. Between-seed spread here is large; 15-20 is the working minimum.">
+      <span class="lbl">seconds each</span>
+      <input id="b_dur" type="number" min="10" step="60" value="1800"
+        title="Simulated seconds per run. About 10 s of real time per simulated hour, per core.">
+      <span class="sep"></span>
+      <label class="chk" title="Store the 1 Hz centroid track so trajectories can be drawn and exported."><input type="checkbox" id="b_track" checked>tracks</label>
+      <label class="chk" title="Take the sliders and preset buttons as they are set right now as the starting point. Unticked uses the page's own defaults, which is what the Node tooling does."><input type="checkbox" id="b_live" checked>from current settings</label>
+      <span class="spacer"></span>
+      <button id="b_run">Run</button>
+      <button id="b_stop" hidden>Cancel</button>
+    </div>
+    <div class="brow">
+      <span class="lbl" id="b_plan">&mdash;</span>
+      <div class="bar"><i id="b_barf"></i></div>
+      <span class="lbl" id="b_stat" style="min-width:150px"></span>
+    </div>
+  </div>
+
+  <div class="bgrid">
+    <div class="cwrap"><canvas id="bover"></canvas>
+      <div class="tag">selected trajectories</div></div>
+    <div class="btable"><table id="b_tab">
+      <thead><tr id="b_head"></tr></thead><tbody id="b_body"></tbody></table></div>
+  </div>
+
+  <div class="brow">
+    <button id="b_pdf" title="The selected trajectories as a vector PDF figure: real paths, not a screenshot, so it scales and can be edited in Illustrator or Inkscape. Includes a scale bar.">Export PDF</button>
+    <button id="b_svg" title="The same figure as SVG, if you would rather edit it in Inkscape or drop it into a vector editor directly.">SVG</button>
+    <span class="sep"></span>
+    <button id="b_json" title="One self-describing file: the config that produced the runs, the model fingerprint, and every table. This is the file the analysis GUI reads.">Export bundle</button>
+    <button id="b_csv" title="runs, visits and turns as three CSVs, the same long format the Node tooling writes.">Export CSVs</button>
+    <button id="b_clear">Clear results</button>
+    <span class="lbl" id="b_note"></span>
+  </div>
+</section>
+
+<div class="scrubbar">
+  <button id="rplay" title="Play the recording back. From the live end it restarts at the beginning.">&#9654; Replay</button>
+  <span class="lbl" style="min-width:0">speed</span>
+  <input type="range" id="rspd" min="0.25" max="16" step="0.25" value="1" style="max-width:110px;flex:0 0 110px"
+    title="Replay rate as a multiple of real time.">
+  <span class="lbl" id="v_rspd" style="min-width:34px">1.0x</span>
+  <button id="live" title="Return to the live frame and carry on simulating.">Live</button>
+  <span class="sep"></span>
+  <span class="lbl" style="min-width:0">zoom</span>
+  <input type="range" id="zm" min="1" max="40" step="0.5" value="1" style="max-width:90px;flex:0 0 90px"
+    title="Magnify the arena. The mouse wheel over the arena does the same about the cursor; drag to pan; double-click to fit.">
+  <span class="lbl" id="v_zm" style="min-width:30px">1.0x</span>
+  <button id="foll" class="on" title="Keep the larva centred while zoomed in. Dragging to pan turns this off.">Follow</button>
+  <input type="range" id="scrub" min="0" max="0" step="1" value="0"
+    title="Replay. Drag to review any moment already simulated; the arena, both kymographs and every stat show that frame. Playback only — pressing play returns to the live frame.">
+  <span class="lbl" id="v_scrub">0.0 s</span>
+  <span class="sep"></span>
+  <button id="cin" title="Mark the start of a clip at the current replay position.">In</button>
+  <button id="cout" title="Mark the end of a clip at the current replay position.">Out</button>
+  <select id="crate" title="Simulated seconds per second of video. 1x is real time, which is what you need for peristalsis to be legible; the faster rates are for watching a trajectory build. Recording runs in real time, so the clip takes as long to make as it does to watch.">
+    <option value="1">1&times;</option>
+    <option value="5">5&times;</option>
+    <option value="20" selected>20&times;</option>
+    <option value="60">60&times;</option>
+  </select>
+  <button id="crec" title="Record the clip from the arena panel as a video file. Zoom and Follow are recorded as they are set, so zoom in first to film the peristalsis.">&#9679; Clip</button>
+  <span class="lbl" id="v_clip" style="min-width:96px">whole run</span>
+</div>
+
+<div class="stats">
+  <div class="stat"><span>State</span><b id="s_state">run</b></div>
+  <div class="stat"><span>Local</span><b id="s_loc">agar</b></div>
+  <div class="stat"><span>Speed mm/s</span><b id="s_sp">0.00</b></div>
+  <div class="stat"><span>Target</span><b id="s_tg">0.84</b></div>
+  <div class="stat"><span>Stride mm</span><b id="s_st">&mdash;</b></div>
+  <div class="stat"><span>In patch %</span><b id="s_ip">0</b></div>
+  <div class="stat"><span>Visits</span><b id="s_pv">0</b></div>
+  <div class="stat"><span>Border %</span><b id="s_bd">0</b></div>
+  <div class="stat"><span>Residence s</span><b id="s_rs">&mdash;</b></div>
+  <div class="stat"><span>Leave evid.</span><b id="s_ou">0.00</b></div>
+  <div class="stat"><span>Decided %</span><b id="s_dw">&mdash;</b></div>
+  <div class="stat"><span>Wall resp</span><b id="s_wr">reverse</b></div>
+  <div class="stat"><span>Head angle</span><b id="s_ha">0&deg;</b></div>
+  <div class="stat"><span>Max bend</span><b id="s_mj">0&deg;</b></div>
+  <div class="stat"><span>Turns/min</span><b id="s_tm">&mdash;</b></div>
+  <div class="stat"><span>Mean |turn|</span><b id="s_mt">&mdash;</b></div>
+  <div class="stat"><span>Path mm</span><b id="s_pl">0</b></div>
+  <div class="stat"><span>Time</span><b id="s_t">0.0 s</b></div>
+</div>
+
+<script id="model">
+(function(){
+"use strict";
+/* Headless drivers may set these before the script runs. They have no effect
+   in a browser, where neither is defined. */
+var __LARVA_H=(typeof globalThis!=='undefined'&&globalThis.__LARVA_H)||null;
+var __LARVA_NODRAW=(typeof globalThis!=='undefined'&&!!globalThis.__LARVA_NODRAW);
+
+var SEG=['T1','T2','T3','A1','A2','A3','A4','A5','A6','A7','A8'];
+var N=SEG.length, NB=N-1, NP=N+1;
+var BL=[]; for(var z=1;z<N;z++) BL.push(SEG[z-1]+'/'+SEG[z]);
+var PTL=['head']; for(var z2=0;z2<NB;z2++) PTL.push(BL[z2]); PTL.push('tail');
+var BODY=4.0, SEGLEN=BODY/N;
+var CASTC=[0.05,0.10,0.30,0.60,0.85,0.95,1,1,1,1,1,1];
+
+/* measured means, Wosniack et al. 2022 eLife 11:e75826 — [speed mm/s, turns/min] */
+var PRESET={
+  rover :{agar:[0.84,2.65], sucrose:[0.68,2.44], yeast:[0.37,2.00]},
+  sitter:{agar:[0.96,2.79], sucrose:[0.68,2.13], yeast:[0.31,1.71]}
+};
+var SUBCOL={
+  agar   :{fill:'rgba(55,138,221,0.13)', line:'rgba(24,95,165,0.45)',  trail:'rgba(55,138,221,0.9)'},
+  sucrose:{fill:'rgba(99,153,34,0.17)',  line:'rgba(59,109,17,0.5)',   trail:'rgba(99,153,34,0.95)'},
+  yeast  :{fill:'rgba(239,159,39,0.18)', line:'rgba(186,117,23,0.55)', trail:'rgba(186,117,23,0.95)'}
+};
+var geno='rover', subs='agar', mode='homog', mixed=false, curLocal='';
+
+var A=document.getElementById('arena'), ax=A.getContext('2d');
+var K=document.getElementById('kymo'),  kx=K.getContext('2d');
+var J=document.getElementById('jang'),  jx=J.getContext('2d');
+var TR=document.createElement('canvas'); TR.width=1600; TR.height=800; var trx=TR.getContext('2d');
+var SC=document.createElement('canvas'); SC.width=1600; SC.height=800; var scx=SC.getContext('2d');
+var KB=document.createElement('canvas'); KB.width=760; KB.height=340; var kb=KB.getContext('2d');
+var JB=document.createElement('canvas'); JB.width=760; JB.height=340; var jb=JB.getContext('2d');
+
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function PB(){return css('--panel')||'#fff';}
+
+var P={per:1.07,del:90,dur:600,amp:0.50,rel:1,spd:1,lift:0.9,mu:10,hl:0.85,ext:4,sr:0.7,migK:0.6,
+       ca:55,cg:1.3,acc:0.5,rt:22.6,pf:0,wv:8,pb:0.95,hd:0.5,pr:18,aw:100,ah:50,tr:0.6,migV:0,bexit:1,rsp:0,asym:0,cbs:25,cbt:2,wdf:0,mh:1,rvp:0.7,
+       seed:1,oumu:0.03,ouq:0.75,oulk:0.004,ounz:0.08,ocmp:1.2,tmem:600,tdes:18.9,tres:5.3,rgain:0.63,cdose:3,bw:4,lsd:120,lsb:0,lsq:0.6,vmerge:30,vtime:60,lsi:0.35};
+function fmt(id){
+  return (id==='oumu'||id==='oulk')?P[id].toFixed(3)
+        :(id==='del'||id==='dur'||id==='aw'||id==='ah'||id==='wv'||id==='ca'||id==='ext'||id==='pr'||id==='lsd'||id==='seed'||id==='tmem'||id==='vmerge'||id==='vtime')?P[id].toFixed(0)
+        :((id==='mu'||id==='spd'||id==='rt'||id==='tdes'||id==='tres'||id==='bw'||id==='cdose')?P[id].toFixed(1):P[id].toFixed(2));
+}
+Object.keys(P).forEach(function(id){
+  var e=document.getElementById(id), o=document.getElementById('v_'+id);
+  if(!e)return;
+  var f=function(){
+    P[id]=parseFloat(e.value); o.textContent=fmt(id);
+    if(id==='aw'||id==='ah'){ setArena(); if(typeof syncSizeMenu==='function') syncSizeMenu(); }
+    if(id==='ext') bendProfile();
+    /* The seed selects which run you get, so it has to restart the run. It
+       previously only set P.seed, while the random stream stayed seeded from
+       whatever reset() last used - so changing the seed changed nothing, and
+       any batch that swept it was re-running one identical simulation. */
+    if(id==='seed' && typeof reset==='function') reset();
+  };
+  e.addEventListener('input',f); f();
+});
+function setP(id,val){
+  var e=document.getElementById(id);
+  e.value=val; P[id]=parseFloat(e.value);
+  document.getElementById('v_'+id).textContent=fmt(id);
+}
+
+/* The arena's dimensions are its own, in mm. They used to come partly from
+   the canvas: the width was a parameter but the HEIGHT was the panel's aspect
+   ratio, so identical settings gave a 100x35 mm arena in a wide window and
+   100x80 in a tall one - a 2.3x range in area, and in the perimeter-to-area
+   ratio that border occupancy depends on. Results were not reproducible
+   across window sizes, and a square arena, which is what the foraging
+   literature uses, could not be asked for at all. The view letterboxes
+   instead; empty space in the panel is the correct answer. */
+var WW=100, WH=50, BW=[];
+/* ---- arena view: zoom and pan ------------------------------------------
+   One place computes world-mm -> canvas-px, and the mouse handlers invert it,
+   so zooming cannot drift out of step with what is drawn. At zoom 1 the whole
+   arena is fitted as before. Above that the view centres on the larva while
+   Follow is on, otherwise on a pan point the user drags. */
+var zoom=1, panX=-1, panY=-1, follow=true;
+var vSc=1, vTx=0, vTy=0;
+function arenaView(W,H){
+  var pad=3, base=Math.min((W-2*pad)/WW,(H-2*pad)/WH), sc=base*zoom, fx, fy;
+  if(zoom<=1.0001){ fx=WW/2; fy=WH/2; }
+  else if(follow){ fx=dCx||WW/2; fy=dCy||WH/2; }
+  else { fx=(panX<0?WW/2:panX); fy=(panY<0?WH/2:panY); }
+  var tx=W/2-fx*sc, ty=H/2-fy*sc;
+  /* keep the arena in view: centre it on any axis where it fits, otherwise
+     stop the pan at its edges */
+  if(WW*sc<=W) tx=(W-WW*sc)/2; else tx=Math.min(0,Math.max(W-WW*sc,tx));
+  if(WH*sc<=H) ty=(H-WH*sc)/2; else ty=Math.min(0,Math.max(H-WH*sc,ty));
+  vSc=sc; vTx=tx; vTy=ty;
+  return sc;
+}
+function toWorld(px,py){ return [(px-vTx)/vSc,(py-vTy)/vSc]; }
+function bendProfile(){
+  var E=Math.round(P.ext), s=0; BW=[];
+  for(var i=0;i<E;i++){ var v=Math.exp(-Math.pow((i-1)/(E*0.52),2)); BW.push(v); s+=v; }
+  for(var j=0;j<E;j++) BW[j]/=s;
+}
+function setArena(){ WW=P.aw; WH=P.ah;
+  TR.height=Math.max(1,Math.round(TR.width*WH/WW)); trx=TR.getContext('2d');
+  SC.height=TR.height; scx=SC.getContext('2d');
+  /* resizing the arena also blanks the backing canvas; stored centroids are
+     absolute mm, so they redraw correctly in the new world */
+  if(typeof rebuildLiveTrail==='function'){
+    rebuildLiveTrail();
+    if(scrubbing) rebuildTrail(scrubIdx);
+  } }
+/* redraw the accumulated trail into the live canvas from stored centroids */
+function rebuildLiveTrail(){
+  trx.clearRect(0,0,TR.width,TR.height);
+  if(!hCount) return;
+  trx.lineWidth=2.4; trx.lineCap='round'; trx.lineJoin='round';
+  var H=HIST, cur=null;
+  for(var i=0;i<hCount;i++){
+    var o=FW*histAt(i), x=H[o+60]/WW*TR.width, y=H[o+61]/WH*TR.height;
+    var col=(mode!=='homog'&&LNAME[H[o+2]]!=='agar')?SUBCOL[LNAME[H[o+2]]].trail:'rgba(127,119,221,1)';
+    if(col!==cur){ if(cur!==null) trx.stroke(); trx.strokeStyle=col; trx.beginPath(); trx.moveTo(x,y); cur=col; }
+    else trx.lineTo(x,y);
+  }
+  if(cur!==null) trx.stroke();
+}
+
+/* ---- patch geometry ---------------------------------------------------- */
+/* arena-size presets. Setting both dimensions explicitly is the whole point,
+   so the menu writes the two sliders and lets their own handler do the rest. */
+var aszEl=document.getElementById('asz');
+function setSize(w,h){
+  var aw=document.getElementById('aw'), ah=document.getElementById('ah');
+  aw.value=String(w); aw.dispatchEvent(new Event('input'));
+  ah.value=String(h); ah.dispatchEvent(new Event('input'));
+}
+function syncSizeMenu(){
+  /* headless hosts have no real <select>, so there is nothing to sync */
+  if(!aszEl || !aszEl.options || !aszEl.options.length) return;
+  var key=Math.round(P.aw)+'x'+Math.round(P.ah), found='';
+  for(var i=0;i<aszEl.options.length;i++) if(aszEl.options[i].value===key) found=key;
+  aszEl.value=found;              /* a size off the list shows the blank entry */
+}
+if(aszEl) aszEl.addEventListener('change', function(){
+  var v=aszEl.value; if(!v) return;
+  var p=v.split('x'); setSize(+p[0], +p[1]);
+});
+
+function patchR(){ return Math.min(P.pr, Math.min(WW,WH)*0.30); }
+/* The alternative substrate used for every other patch in a mixed arena.
+   Yeast and sucrose are the two foods with measured kinematics here, and they
+   differ in quality: larvae crawl slower and pause far more on yeast. */
+function altSub(){ return subs==='yeast'?'sucrose':(subs==='sucrose'?'yeast':'agar'); }
+/* each patch is [x, y, R, substrate].
+   Memoised: the geometry only changes when the arena, patch radius, mode or
+   substrate changes, but this is called from the leaving decision on every
+   2 ms substep. Rebuilding the array each time made patchy arenas about an
+   order of magnitude slower than uniform ones, which is the difference
+   between a foraging sweep taking minutes and taking hours. */
+var _pCache=null, _pKey='';
+function patches(){
+  var key=mode+'|'+subs+'|'+(mixed?1:0)+'|'+WW+'|'+WH+'|'+P.pr;
+  if(key===_pKey) return _pCache;
+  _pKey=key;
+  if(mode==='homog'){ _pCache=[]; return _pCache; }
+  var R=patchR(), cx=WW/2, cy=WH/2, A=subs, B=mixed?altSub():subs;
+  if(mode==='p1'){ _pCache=[[cx,cy,R,A]]; return _pCache; }
+  if(mode==='p2'){
+    var dx=Math.min(WW*0.26, WW/2-R-1);
+    _pCache=[[cx-dx,cy,R,A],[cx+dx,cy,R,B]]; return _pCache;
+  }
+  var ox=Math.min(WW*0.24, WW/2-R-1), oy=Math.min(WH*0.26, WH/2-R-1);
+  _pCache=[[cx-ox,cy-oy,R,A],[cx+ox,cy-oy,R,B],[cx-ox,cy+oy,R,B],[cx+ox,cy+oy,R,A]];
+  return _pCache;
+}
+var _np={p:null,d:0,i:-1};
+function nearestPatch(x,y){
+  var ps=patches(), best=null, bd=1e9, bi=-1;
+  for(var i=0;i<ps.length;i++){
+    var dx=x-ps[i][0], dy=y-ps[i][1], d=dx*dx+dy*dy;   /* compare squared */
+    if(d<bd){ bd=d; best=ps[i]; bi=i; }
+  }
+  if(!best) return null;
+  _np.p=best; _np.d=Math.sqrt(bd); _np.i=bi;   /* one object, not one per call */
+  return _np;
+}
+function localSub(){
+  if(mode==='homog') return subs;
+  var c=centroid(), n=nearestPatch(c[0],c[1]);
+  return (n && n.d<=n.p[2])?n.p[3]:'agar';
+}
+/* quality scale used by the leaving decision and the comparison */
+var QUAL={agar:0, sucrose:0.5, yeast:1};
+function qual(x){ return QUAL[x]!==undefined?QUAL[x]:0; }
+/* probability of turning toward the patch centre, peaked at the border */
+function inwardP(){
+  if(mode==='homog') return 0;
+  var c=centroid(), n=nearestPatch(c[0],c[1]);
+  if(!n||n.p[3]==='agar') return 0;
+  /* once the leaving decision has fired, the border bias no longer holds the
+     larva in: that is how an evidence threshold produces an exit */
+  if(leaving) return 0;
+  var R=n.p[2];
+  return 0.5+(P.pb-0.5)*Math.exp(-Math.pow((n.d-R)/(0.45*R),2));
+}
+var prevLocal='agar';
+function applyLocal(force){
+  var s=localSub();
+  if(s===curLocal && !force) return;
+  if(curLocal&&curLocal!=='agar') prevLocal=curLocal;
+  if(curLocal && s!==curLocal && s!=='agar') patchVisits++;
+  if(curLocal && curLocal!=='agar' && s==='agar' && P.lsd>0){
+    /* search harder after a better patch: larvae are more likely to return to
+       attractive patches, and return trips are counted as part of the visit */
+    var ce=centroid(); lsX=ce[0]; lsY=ce[1];
+    lsEnd=t+P.lsd*(1-P.lsq+P.lsq*qual(curLocal));
+  }
+  curLocal=s;
+  var pr=PRESET[geno][s], v=pr[0], tpm=pr[1];
+  var sl=(strideMM>0.05?strideMM:0.61);
+  /* a wave cannot be shorter than the relay that carries it: 10 intersegmental
+     delays plus one contraction. Asking for a faster stride than that is
+     meaningless, so the period is floored at the wave duration. */
+  var waveDur=(N-1)*P.del/1000;
+  var per=Math.min(1.6,Math.max(waveDur,sl/v));
+  var pf=Math.max(0,Math.min(0.7,1-v/(sl/per)));
+  setP('per',per.toFixed(2)); setP('pf',pf.toFixed(2)); setP('rt',(60/tpm).toFixed(1));
+  document.getElementById('s_tg').textContent=v.toFixed(2);
+}
+
+var world=[], bends=new Array(N).fill(0), wts=new Array(NP).fill(1);
+/* Per-row contact weights. The body has width, so each midline point carries
+   two denticle bands, one either side of the midline, and they can grip by
+   different amounts. `wts` stays the mean of the two so the history buffer,
+   the CSV and the kymographs keep reading one contact value per segment. */
+var wtsL=new Array(NP).fill(1), wtsR=new Array(NP).fill(1);
+var t=0, running=true, spont=true, wallMode='rev';
+var onset=new Array(N).fill(-1e9), queue=[], dir=1;
+var nextInit=0, waveEnd=0, nWaves=0, revLeft=0, pauseEnd=0, wallCool=0;
+var state='run', runEnd=0, castStart=0, castDir=1, castAmp=0, nCast=0, decided=false;
+var bend=0, bendPos=0, straightening=false, wallSince=-1;
+/* Body-wide postural curvature. Tracking (8j) shows real crawling carries a
+   persistent, body-wide bend held over 1-3 s, present at every tracked angle;
+   this model's crawl was geometrically straight, which is why its runs were
+   straight lines where real trajectories curve. `cb` is that curvature, in
+   radians of TOTAL body bend, driven by an Ornstein-Uhlenbeck process so it
+   wanders and persists rather than oscillating on a clock the way the
+   weathervane does. */
+var cb=0, cbR=0;
+/* Deflection along a wall. Measured (8l): the model sits at 5% of its
+   near-wall frames aligned with the boundary against a geometric null of 23%,
+   so its wall does not merely fail to align the body - it drives it
+   perpendicular, because the push-in acts along the normal and both
+   behavioural responses point the body away. A head that cannot advance into
+   a boundary deflects ALONG it, toward whichever tangent it is already headed
+   for, that being the smaller turn. */
+var wd=0;
+var wvPh=0, psi=0, cx0=50, cy0=25, lastCX=0, lastCY=0, strideMM=0, pathLen=0;
+var nTurns=0, lastTurn=0, sumTurn=0, speedAvg=0, pend=null, psiCastStart=0;
+var strideSum=0, strideN=0;
+var timeIn=0, patchVisits=0, timeBorder=0;
+/* mechanosensory habituation of the boundary response. habit runs 1 (full
+   reversal) down to 0 (crawl on past the wall). It decays only while the head
+   is actually driving into the wall, and recovers only once clear, which is
+   what makes repeated contact step the response down the documented hierarchy
+   reversal -> turn -> pause -> continue. Recovery accelerates with the number
+   of contacts in the current bout. */
+var habit=1, nContact=0, lastClear=0, wallTier=3;
+/* ---- patch leaving as evidence accumulation -----------------------------
+   Residence is not a parameter here. While the larva is on a patch a decision
+   variable accumulates (Ornstein-Uhlenbeck: drift + leak + noise) and leaving
+   is triggered when it crosses threshold, which releases the inward border
+   bias so the larva can walk out. Drift is lower on better food, so evidence
+   accumulates more slowly and exploitation lasts longer.
+
+   Comparative memory: the quality of the last patch is remembered with a
+   strength that decays over minutes, and the drift on the current patch is
+   scaled by the DIFFERENCE between remembered and current quality. A good
+   patch after a poor one is exploited longer; a poor patch after a good one
+   is abandoned sooner; two patches of equal quality produce no effect at all,
+   which is the published negative control and falls out for free.
+   (Dhawan et al. 2025/26; the authors rule out metabolic satiety on exactly
+   this symmetry.) */
+var ouX=0, leaving=false, memQ=-1, memT=-1e9, lastRes=0, patchIn=-1;
+var resSum=0, resN=0, pendOut=-1, pendSub='agar', patchIdx=-1, pendWhy='wander';
+/* Not every departure is a decision. The larva can also cross the border
+   while simply exploring, before the accumulator has reached threshold. Both
+   are real, but only the first carries the quality and memory effects, so the
+   visit log records which it was rather than pooling them. */
+var nDecide=0, nWander=0;
+/* local search after leaving a patch */
+var lsEnd=-1, lsX=0, lsY=0;
+var turnLog=[], visitLog=[], kcur=0, jcur=0;
+/* when the leaving decision fired, so the accumulator can be measured on its
+   own. Residence also contains the walk out of the patch, which is set by
+   geometry and crawl speed and swamps the decision it is meant to report. */
+var leaveT=-1;
+
+/* ---- display layer + replay history -------------------------------------
+   Draw functions read only these d* variables, never the simulation's own
+   state, so scrubbing can render a past frame without corrupting the sim.
+   History is a flat ring buffer sampled on sim time (not frame rate), so the
+   kymograph advances one column per HIST_DT of simulated time whatever the
+   sim-speed slider is set to. Replay is playback only: the simulation itself
+   cannot be rewound (that would need the relay queue and RNG stream too), so
+   pressing play returns to the live frame and carries on. */
+/* 0.05 s per sample, 60000 samples = 50 min of simulated time held for replay;
+   about 17 MB. Older samples fall off the front of the ring. */
+var FW=84, HIST_DT=0.05, CAP=60000;
+var HIST=new Float32Array(FW*CAP), hCount=0;
+var lastHist=-1e9, scrubbing=false, scrubIdx=0;
+var dWorld=[], dC=new Array(N).fill(0), dW=new Array(NP).fill(1),
+    dB=new Array(N).fill(0), dState='run', dLocal='agar', dT=0,
+    dCx=0, dCy=0, dSpeed=0, dPath=0, dTurns=0, dStride=0, dLastTurn=0, dDir=1,
+    dBorder=0, dHabit=1, dTier=3, dLS=0, dOu=0, dLeav=0, dResSum=0, dResN=0, dMem=0, dDec=0, dWan=0,
+    dSumTurn=0, dTimeIn=0, dVisits=0;
+for(var _i=0;_i<NP;_i++) dWorld.push([0,0]);
+var SCODE={run:0,cast:1,back:2,pause:3}, SNAME=['run','cast','back','pause'];
+var LCODE={agar:0,sucrose:1,yeast:2}, LNAME=['agar','sucrose','yeast'];
+
+/* hTotal counts every sample ever taken; the buffer keeps the most recent CAP
+   of them, so index i runs 0..hCount-1 over what is still held. */
+var hTotal=0;
+function histAt(i){ return (hTotal-hCount+i)%CAP; }
+function histPush(){
+  var o=FW*(hTotal%CAP);
+  hTotal++; hCount=Math.min(hTotal,CAP);
+  var H=HIST, k;
+  H[o]=t; H[o+1]=SCODE[state]||0; H[o+2]=LCODE[curLocal]||0;
+  for(k=0;k<NP;k++){ H[o+3+2*k]=world[k][0]; H[o+4+2*k]=world[k][1]; }
+  for(k=0;k<N;k++)  H[o+27+k]=contr(k);
+  for(k=0;k<NP;k++) H[o+38+k]=wts[k];
+  for(k=1;k<N;k++)  H[o+49+k]=bends[k];
+  var c=centroid();
+  H[o+60]=c[0]; H[o+61]=c[1]; H[o+62]=speedAvg; H[o+63]=pathLen;
+  H[o+64]=nTurns; H[o+65]=strideMM; H[o+66]=lastTurn; H[o+67]=sumTurn;
+  H[o+68]=timeIn; H[o+69]=patchVisits; H[o+70]=dir;
+  H[o+71]=timeBorder; H[o+72]=habit; H[o+73]=wallTier; H[o+74]=inLS()?1:0;
+  H[o+75]=ouX; H[o+76]=leaving?1:0; H[o+77]=resSum; H[o+78]=resN; H[o+79]=memW()*(memQ<0?0:memQ);
+  H[o+80]=nDecide; H[o+81]=nWander;
+  kymoColumn(H,o);
+}
+function loadFrame(i){
+  var o=FW*histAt(i), H=HIST, k;
+  dT=H[o]; dState=SNAME[H[o+1]]; dLocal=LNAME[H[o+2]];
+  for(k=0;k<NP;k++){ dWorld[k][0]=H[o+3+2*k]; dWorld[k][1]=H[o+4+2*k]; }
+  for(k=0;k<N;k++)  dC[k]=H[o+27+k];
+  for(k=0;k<NP;k++) dW[k]=H[o+38+k];
+  dB[0]=0; for(k=1;k<N;k++) dB[k]=H[o+49+k];
+  dCx=H[o+60]; dCy=H[o+61]; dSpeed=H[o+62]; dPath=H[o+63];
+  dTurns=H[o+64]; dStride=H[o+65]; dLastTurn=H[o+66]; dSumTurn=H[o+67];
+  dTimeIn=H[o+68]; dVisits=H[o+69]; dDir=H[o+70];
+  dBorder=H[o+71]; dHabit=H[o+72]; dTier=H[o+73]; dLS=H[o+74];
+  dOu=H[o+75]; dLeav=H[o+76]; dResSum=H[o+77]; dResN=H[o+78]; dMem=H[o+79];
+  dDec=H[o+80]; dWan=H[o+81];
+}
+function syncDisplay(){ if(hCount) loadFrame(hCount-1); }
+
+var D2R=Math.PI/180, R2D=180/Math.PI;
+/* Seeded PRNG (mulberry32). Every stochastic choice in the model draws from
+   this, so a given seed reproduces a run exactly - without that, single-run
+   differences in border occupancy or patch residence cannot be told from
+   run-to-run noise, which for these statistics is large. */
+var rngState=1;
+function rnd(){
+  rngState|=0; rngState=(rngState+0x6D2B79F5)|0;
+  var x=Math.imul(rngState^(rngState>>>15),1|rngState);
+  x=(x+Math.imul(x^(x>>>7),61|x))^x;
+  return ((x^(x>>>14))>>>0)/4294967296;
+}
+function seedRng(v){ rngState=(v|0)||1; for(var i=0;i<8;i++) rnd(); }
+function expo(m){ return -Math.log(1-rnd())*m; }
+function wrapA(x){ while(x>Math.PI)x-=6.283185; while(x<-Math.PI)x+=6.283185; return x; }
+function contr(i){
+  var u=(t-onset[i])/(P.dur/1000);
+  if(u<0||u>1) return 0;
+  return 0.5*(1-Math.cos(6.283185*u));
+}
+/* Bend profile sampled at each boundary, displaced posteriorly by bendPos.
+   After an accepted sweep the region of asymmetric contraction migrates
+   retrogradely (Lahiri et al. 2011), which is what converts a head sweep into
+   a lasting heading change: the body threads through a bend that stays put,
+   so the posterior is drawn into line with the head rather than the head
+   springing back. bendPos is locked to DISTANCE CRAWLED, not to a clock —
+   a bend fixed in the world is follow-the-leader kinematics, and a measured
+   sweep (mech_test3.js) shows the realised turn collapses if it is not:
+   migK 0.6 realises ~0.9 of the commanded sweep, migK 1.5 only ~0.3.
+   The profile is renormalised so the commanded articulation is conserved
+   while the bend is inside the body. */
+function bendAt(i){
+  var x=i-1-bendPos;
+  if(x<-1||x>BW.length) return 0;
+  var k=Math.floor(x), f=x-k;
+  var a=(k>=0&&k<BW.length)?BW[k]:0, b=(k+1>=0&&k+1<BW.length)?BW[k+1]:0;
+  return a+(b-a)*f;
+}
+function localShape(){
+  for(var j=0;j<N;j++) bends[j]=0;
+  var tot=0, raw=new Array(N).fill(0);
+  for(var b=1;b<N;b++){ raw[b]=bendAt(b); tot+=raw[b]; }
+  /* Two ways to place the profile. Renormalising by `tot` conserves the
+     commanded articulation while any of the profile is inside the body - so
+     as it runs off the tail the remainder is amplified, ending as a single
+     46 deg kink at A7/A8, and the turn then stops dead when the profile
+     finally leaves. Dividing by nothing instead lets the articulation LEAVE
+     with the profile: BW sums to 1, so the body carries exactly the fraction
+     of the bend still on it, and rotation tapers as the bend runs out.
+     Tracking says real rotation decays smoothly to zero over about five
+     segment lengths rather than stopping, which is the second behaviour. */
+  if(P.bexit>0.5){
+    for(var b3=1;b3<N;b3++) bends[b3]=bend*raw[b3];
+  } else if(tot>1e-6){
+    for(var b2=1;b2<N;b2++) bends[b2]=bend*raw[b2]/tot;
+  }
+  /* Postural curvature is spread over every boundary, not confined to the
+     `ext` anterior ones the cast uses: 8j finds the real excess at all three
+     tracked angles, largest anteriorly and smallest mid-body, so an
+     anterior-only term is the wrong shape. Equal spreading is the honest
+     default - the measured ordering is not a clean gradient. */
+  var extra=cb+wd;
+  if(extra!==0){ var per=extra/(N-1); for(var b5=1;b5<N;b5++) bends[b5]+=per; }
+
+  var pts=new Array(NP), ang=0, X=0, Y=0;
+  pts[N]=[0,0];
+  for(var i=N-1;i>=0;i--){
+    if(i<N-1) ang+=bends[i+1];
+    var len=SEGLEN*(1-P.amp*contr(i));
+    X+=Math.cos(ang)*len; Y+=Math.sin(ang)*len;
+    pts[i]=[X,Y];
+  }
+  return pts;
+}
+/* ---- body width -------------------------------------------------------
+   Until now the body was a line: twelve midline points, with the substrate
+   contacts on the midline itself. The silhouette on screen had width, but it
+   was cosmetic, and a line body cannot tell its left side from its right.
+
+   Width enters as the thing that actually touches the substrate. Each abdominal
+   segment bears a ventral denticle belt - rows of cuticular hooks - and those
+   belts sit in two paramedian bands, not across the full width of the animal.
+   `rsp` is the half-spacing of those bands at the widest point, in mm, tapering
+   to head and tail with the body. The rigid placement is then solved from the
+   2*NP band positions instead of from the midline.
+
+   Late third-instar larvae are 0.8-1.1 mm across at 4 mm long, so the body
+   half-width is around 0.4 and the belts sit inside that. The drawn silhouette
+   stays the body; the bands are drawn inside it, where they grip.
+
+   Setting `rsp` to 0 collapses both rows onto the midline and restores the
+   original single-row fit exactly - verified bit-for-bit - which is what every
+   measurement in README sections 6a, 8c and 10 was taken with. */
+/* Normalised body width at each midline point, MEASURED rather than assumed:
+   hand-labelled segmental landmarks on both body margins, 116 frames over
+   three recordings (8i). Peak at A2/A3, and the posterior stays fuller than a
+   sine taper does - 0.72 at A7 against 0.52. The extremities carry no
+   landmarks, so head and tail are tapered to a small value rather than
+   measured. The previous profile was 0.08+0.30*sin(pi*(j+0.5)/12). */
+var BODYW=[0.30,0.59,0.75,0.87,0.96,1.00,1.00,0.97,0.92,0.84,0.72,0.30];
+function bodyHalfW(j){                 /* drawn silhouette, mm - cosmetic */
+  return 0.38*BODYW[j];
+}
+function rowOff(j){                    /* denticle band offset, mm - mechanical */
+  return P.rsp*BODYW[j];
+}
+/* Local outward normal at midline point j, from a central difference. */
+function normalAt(pts,j){
+  var pa=pts[Math.max(0,j-1)], pb=pts[Math.min(N,j+1)];
+  var ux=pb[0]-pa[0], uy=pb[1]-pa[1], ul=Math.hypot(ux,uy)||1;
+  return [-uy/ul, ux/ul];
+}
+/* The 2*NP denticle positions of a body in a given pose: left row 0..NP-1,
+   right row NP..2*NP-1. These are the points that grip, so these are the
+   points the rigid fit is solved from. */
+function contactRows(pts){
+  var out=new Array(2*NP);
+  for(var j=0;j<NP;j++){
+    var n=normalAt(pts,j), r=rowOff(j);
+    out[j]    = [pts[j][0]+n[0]*r, pts[j][1]+n[1]*r];
+    out[NP+j] = [pts[j][0]-n[0]*r, pts[j][1]-n[1]*r];
+  }
+  return out;
+}
+/* Signed local articulation at point j, scaled so a fully commanded sweep is
+   about 1. Sign says which side of the body the bend closes on. */
+function kappaN(j){
+  var k=(j<=0)?bends[1]:(j>=N)?bends[N-1]:bends[j];
+  var ref=(P.ca*D2R)/Math.max(1,P.ext);
+  var kn=ref>1e-6?k/ref:0;
+  return kn>1?1:kn<-1?-1:kn;
+}
+function contactWeights(){
+  var casting=(state==='cast');
+  for(var j=0;j<NP;j++){
+    var c=Math.max(j>0?contr(j-1):0, j<N?contr(j):0);
+    var w=1-P.lift*c;
+    if(casting) w*=(1-P.hl*(1-CASTC[j]));
+    /* Mouth hooks. A larva plants them as the forward wave reaches the
+       anterior, anchoring the newly advanced head so the next wave can draw
+       the body up to it. This model had the opposite: the head's weight is
+       1 - lift*contraction, so it was MOST RELEASED at the peak of T1's own
+       contraction (8m). `mh` adds grip at the head in proportion to that
+       contraction, which is when the hooks engage. Forward crawling only -
+       the hooks do not anchor a reversal. */
+    if(j===0 && P.mh>0 && dir===1) w += P.mh*contr(0);
+    w=Math.max(0.02,w);
+    wts[j]=w;
+    /* Bilateral asymmetry. On the inside of a bend the ventral cuticle is
+       compressed, so the denticle bands bunch up and grip harder per unit of
+       path length; on the outside they are pulled apart and grip less. `asym`
+       is the gain on that difference, and at 0 both rows carry the segment's
+       weight equally, which is the symmetric body.
+
+       This is the one mechanism in the model that can raise rotation per unit
+       of bend travel rather than raising travel speed, and that distinction is
+       why it is here: section 8e shows the model's rotation is 90% travel-
+       coupled, so every other handle trades turn shape against turn size. */
+    if(P.rsp<=0){ wtsL[j]=w; wtsR[j]=w; continue; }   /* a line body has no sides */
+    var a=P.asym*kappaN(j);
+    if(a>0.95) a=0.95; else if(a<-0.95) a=-0.95;
+    wtsL[j]=w*(1+a);
+    wtsR[j]=w*(1-a);
+  }
+}
+/* Weighted rigid fit of one point set onto another - Kabsch in two dimensions,
+   returned as a transform rather than applied, so the fit can be solved from
+   the contact points and then applied to the whole body. */
+function rigidFit(src,dst,w){
+  var sw=0,cqx=0,cqy=0,crx=0,cry=0,j,n=src.length;
+  for(j=0;j<n;j++){ sw+=w[j];
+    cqx+=w[j]*dst[j][0]; cqy+=w[j]*dst[j][1];
+    crx+=w[j]*src[j][0]; cry+=w[j]*src[j][1]; }
+  cqx/=sw; cqy/=sw; crx/=sw; cry/=sw;
+  var a=0,b=0;
+  for(j=0;j<n;j++){
+    var rx=src[j][0]-crx, ry=src[j][1]-cry;
+    var qx=dst[j][0]-cqx, qy=dst[j][1]-cqy;
+    a+=w[j]*(rx*qx+ry*qy); b+=w[j]*(rx*qy-ry*qx);
+  }
+  var th=Math.atan2(b,a);
+  return {c:Math.cos(th),s:Math.sin(th),crx:crx,cry:cry,cqx:cqx,cqy:cqy};
+}
+function applyFit(T,pts){
+  var out=new Array(pts.length);
+  for(var j=0;j<pts.length;j++){
+    var dx=pts[j][0]-T.crx, dy=pts[j][1]-T.cry;
+    out[j]=[T.cqx+T.c*dx-T.s*dy, T.cqy+T.s*dx+T.c*dy];
+  }
+  return out;
+}
+/* Solve the placement. With width, the fit is over both denticle rows; with
+   `bw` at 0 it falls back to the original midline fit so that earlier results
+   reproduce bit for bit. */
+function solvePlace(loc,wL,wR){
+  if(P.rsp<=0){
+    var wm=new Array(NP);
+    for(var j=0;j<NP;j++) wm[j]=0.5*(wL[j]+wR[j]);
+    return rigidFit(loc,world,wm);
+  }
+  return rigidFit(contactRows(loc),contactRows(world),wL.concat(wR));
+}
+function heading(){ return Math.atan2(world[3][1]-world[N][1], world[3][0]-world[N][0]); }
+function headDir(){ return Math.atan2(world[0][1]-world[2][1],world[0][0]-world[2][0]); }
+function headAngle(){ return wrapA(headDir()-heading()); }
+function centroid(){
+  var x=0,y=0; for(var j=0;j<NP;j++){x+=world[j][0];y+=world[j][1];}
+  return [x/NP,y/NP];
+}
+function initBody(){
+  world=[]; var a=rnd()*6.283185;
+  for(var j=0;j<NP;j++)
+    world.push([WW/2+Math.cos(a)*(N/2-j)*SEGLEN, WH/2+Math.sin(a)*(N/2-j)*SEGLEN]);
+}
+function nearWall(){
+  var m=0.30, best=m, n=null, d;
+  for(var j=0;j<NP;j++){
+    d=world[j][0];    if(d<best){best=d;n=[1,0];}
+    d=WW-world[j][0]; if(d<best){best=d;n=[-1,0];}
+    d=world[j][1];    if(d<best){best=d;n=[0,1];}
+    d=WH-world[j][1]; if(d<best){best=d;n=[0,-1];}
+  }
+  return n;
+}
+/* a genuine head touch: the HEAD point is at a wall and is driving into it.
+   A tail that happens to be near a wall is not a touch, and a larva crawling
+   parallel to a wall is following the edge, not colliding with it. */
+function intoWall(){
+  var m=0.5, best=m, n=null, p=world[0], d;
+  d=p[0];    if(d<best){best=d;n=[1,0];}
+  d=WW-p[0]; if(d<best){best=d;n=[-1,0];}
+  d=p[1];    if(d<best){best=d;n=[0,1];}
+  d=WH-p[1]; if(d<best){best=d;n=[0,-1];}
+  if(!n) return null;
+  var h=headDir();
+  return (Math.cos(h)*n[0]+Math.sin(h)*n[1] < -0.15) ? n : null;
+}
+function awayDir(){
+  var w=nearWall(); if(!w) return rnd()<0.5?1:-1;
+  return (Math.cos(psi)*w[1]-Math.sin(psi)*w[0])>=0?1:-1;
+}
+/* Which way to sweep so the body ends up ALONG the boundary rather than
+   pointed away from it - the nearer of the two tangents, which is the smaller
+   turn. A larva pressed head-on into a wall cannot turn by crawling, because
+   rotation here is produced by the bend travelling while the body advances
+   (8e) and a blocked body does not advance. The cast is the only way out, so
+   where the cast aims decides whether it ends up sliding along the edge or
+   facing away from it. */
+function slideDir(){
+  var w=nearWall(); if(!w) return rnd()<0.5?1:-1;
+  var tx=-w[1], ty=w[0];
+  if(Math.cos(psi)*tx+Math.sin(psi)*ty<0){ tx=-tx; ty=-ty; }
+  return wrapA(Math.atan2(ty,tx)-psi)>=0?1:-1;
+}
+/* `wdf` above 0 means the boundary deflects the animal along itself; at 0 the
+   original behaviour is restored, which turned it away. */
+function wallDir(){ return P.wdf>0 ? slideDir() : awayDir(); }
+/* which way the first sweep of a spontaneous turn goes */
+function chooseDir(){
+  /* decision taken: aim turns OUT of the patch. Releasing the inward bias
+     alone left exit time dominated by geometry and crawl speed, which buried
+     the comparative effect under transit noise (ou_test.js isolates it). */
+  if(leaving && mode!=='homog'){
+    var cl=centroid(), nl=nearestPatch(cl[0],cl[1]);
+    if(nl){
+      var ao=Math.atan2(cl[1]-nl.p[1], cl[0]-nl.p[0]);
+      return wrapA(ao-psi)>=0?1:-1;
+    }
+  }
+  if(inLS() && rnd()<P.lsb){
+    var c0=centroid(), a0=Math.atan2(lsY-c0[1], lsX-c0[0]);
+    return wrapA(a0-psi)>=0?1:-1;
+  }
+  var pb=inwardP();
+  if(pb>0.5 && rnd()<pb){
+    var c=centroid(), n=nearestPatch(c[0],c[1]);
+    if(n){
+      var ang=Math.atan2(n.p[1]-c[1], n.p[0]-c[0]);
+      return wrapA(ang-psi)>=0?1:-1;
+    }
+  }
+  return (rnd()<P.hd)?1:-1;
+}
+
+function fire(i,time){
+  onset[i]=time;
+  var nxt=i-dir;
+  if(nxt<0||nxt>=N) return;
+  if(rnd()<=P.rel) queue.push([nxt,time+P.del/1000]);
+}
+function initWave(time){
+  /* The next wave may start once the previous one has LEFT THE BODY - the
+     relay front reaching the far end is not enough, because the segment it
+     reaches then spends `dur` contracting. Gating on the front alone let the
+     anterior still be shortening when the next wave fired at the tail, which
+     imaging says does not happen (8m). The span of one wave is therefore ten
+     intersegmental delays plus one contraction. */
+  waveEnd=time+(N-1)*P.del/1000+P.dur/1000;
+  fire((dir===1)?N-1:0,time); nWaves++;
+  /* true per-wave displacement, measured here rather than in the render loop:
+     the loop only sees the slice of time inside one animation frame. */
+  var c=centroid();
+  if(lastCX!==null){
+    var d=Math.sqrt(Math.pow(c[0]-lastCX,2)+Math.pow(c[1]-lastCY,2));
+    if(d>0.005&&d<3){ strideSum+=d; strideN++; strideMM=strideSum/strideN; }
+  }
+  lastCX=c[0]; lastCY=c[1];
+}
+function enterCast(d){
+  if(state==='cast') return;
+  state='cast'; castStart=t; castDir=d; nCast=0; decided=false;
+  castAmp=P.ca*D2R; queue.length=0; psiCastStart=psi;
+}
+function acceptSweep(){
+  state='run'; dir=1; nCast=0; decided=false;
+  straightening=true; bendPos=0;
+  nextInit=t+0.1; waveEnd=0; runEnd=t+runLen();
+  if(nearWall()) wallCool=t+5.0;
+  /* score the turn when straightening finishes, not on a fixed clock: the
+     heading is still rotating while the bend is inside the body */
+  pend={psi0:psiCastStart, due:t+25.0};
+}
+/* local search: after leaving a food patch the larva turns far more often,
+   speeds up rather than slowing down, and aims its turns back at the place it
+   left the patch (JEB 2025). */
+function inLS(){ return P.lsd>0 && t<lsEnd; }
+function runLen(){ return expo(P.rt*(inLS()?P.lsi:1)*(leaving?0.3:1)); }
+/* strength of the comparative memory now */
+function memW(){
+  if(memQ<0||P.tmem<=0) return 0;
+  return Math.exp(-(t-memT)/P.tmem);
+}
+/* drift for the patch the larva is standing on */
+function ouDrift(){
+  var q=qual(curLocal);
+  var base=P.oumu*(1-P.ouq*q);
+  var cmp=1+P.ocmp*memW()*(memQ-q);
+  /* floor far below the working range: an earlier 0.01 floor was harmless when
+     the base drift was 0.22, but after the drift was lowered to make decisions
+     outlast transit it clamped every rich-patch drift to the same value and
+     silently erased both the quality and the memory effect */
+  return Math.max(1e-4,base*cmp);
+}
+/* one row per visit: what it was, how long, and what came before it. This is
+   the unit of analysis in the patch-foraging literature. */
+function closeVisit(tOut){
+  if(patchIn<0) return;
+  lastRes=Math.max(0,tOut-patchIn); resSum+=lastRes; resN++;
+  if(pendWhy==='decision') nDecide++; else nWander++;
+  visitLog.push([patchIn.toFixed(2),lastRes.toFixed(2),pendSub,
+                 qual(pendSub).toFixed(2),
+                 memQ<0?'':memQ.toFixed(2),memW().toFixed(3),pendWhy,
+                 leaveT>=0?(leaveT-patchIn).toFixed(2):'']);
+  memQ=qual(pendSub); memT=t;
+  patchIn=-1; ouX=0; leaving=false; leaveT=-1; pendOut=-1; patchIdx=-1;
+}
+function pauseProb(){
+  var f=P.pf; if(f<=0) return 0;
+  return Math.min(1, f*P.per/(1.5*(1-f)));
+}
+
+function stepSim(dt){
+  for(var q=queue.length-1;q>=0;q--)
+    if(t>=queue[q][1]){ fire(queue[q][0],queue[q][1]); queue.splice(q,1); }
+
+  if(state==='pause' && t>=pauseEnd){ state='run'; nextInit=t+0.05; }
+
+  var crawling=(state==='run'||state==='back');
+  if(crawling && t>=nextInit && t>=waveEnd){
+    dir=(state==='back')?-1:1;
+    initWave(t);
+    nextInit=t+P.per*(state==='back'?1.35:1)*(inLS()?0.85:1);
+    if(state==='back'){
+      revLeft--;
+      if(revLeft<=0){
+        state='run'; dir=1; nCast=0; decided=false;
+        /* A reversal used to end in a head cast UNCONDITIONALLY, so the chance
+           of simply crawling on was zero (8n). README 4a describes the
+           habituation hierarchy as ALTERNATIVE responses - reversal, then
+           turn, then pause, then none - but the code appended a turn to every
+           reversal, making the top tier "reversal AND turn". `rvp` is the
+           branch that was missing.
+
+           ITS VALUE IS A GUESS. Tracking cannot supply it: the boundary is
+           where FIM-Track fails, and 48-70% of all tracking losses happen
+           within 2 mm of the edge (8l). 0.7 is a plausible default and nothing
+           more - it is not measured, and it is flagged as such here, in the
+           tooltip and in the parameter table. */
+        if(rnd()<P.rvp){ enterCast(wallDir()); }
+        else {
+          /* resuming straight has to refresh the run timer, which otherwise
+             still holds the pre-reversal deadline and fires a spontaneous
+             cast on the next frame - which would silently undo the branch */
+          nextInit=t+0.1; waveEnd=0; runEnd=t+runLen();
+          if(nearWall()) wallCool=t+5.0;
+        }
+      }
+    }
+    else if(rnd()<pauseProb()){ state='pause'; pauseEnd=t+expo(1.5); }
+  }
+
+  /* Order matters: a cast outranks everything (a new sweep abandons a turn that
+     was still straightening out), then the straightening hold, then the
+     ordinary per-state bend behaviour. Putting the hold first would swallow the
+     cast branch and freeze the animal mid-sweep. */
+  if(state==='cast'){
+    bendPos=0; straightening=false;
+    var u=(t-castStart)*0.6;
+    bend=castDir*castAmp*0.5*(1-Math.cos(6.283185*Math.min(u,1)));
+    if(!decided && u>=0.5){
+      decided=true; nCast++;
+      var w=nearWall(), ok=true;
+      if(w){ var pr=psi+bend; ok=(Math.cos(pr)*w[0]+Math.sin(pr)*w[1])>0.3; }
+      if(ok && (rnd()<P.acc || nCast>=5)) acceptSweep();
+    }
+    if(state==='cast' && u>=1){
+      castDir*=-1; castAmp=Math.min(castAmp*P.cg,145*D2R);
+      castStart=t; decided=false;
+      if(nCast>=4 && nearWall()) castDir=wallDir();
+      if(nCast>=8 && nearWall()){ state='back'; dir=-1; revLeft=2; nextInit=t; waveEnd=0; }
+    }
+  } else if(straightening){
+    /* hold the bend; it migrates posteriorly with distance crawled, applied
+       after the fit below. Backing up does not abandon the turn. */
+  } else if(state==='run'){
+    bendPos=0;
+    wvPh+=dt*0.9;
+    var tgt=P.wv*D2R*Math.sin(wvPh);
+    bend+=(tgt-bend)*Math.min(1,dt*P.sr);
+  } else {
+    bendPos=0;
+    bend+=(0-bend)*Math.min(1,dt*P.sr*1.5);
+  }
+
+  /* Postural curvature wanders on its own clock, in every state. Uniform
+     increments, as the patch-leaving accumulator uses: with Var(U)=1/3 the
+     stationary sd is sigma*sqrt(tau/6), so sigma is set from the sd the user
+     asks for. During a cast the commanded bend dwarfs it. */
+  /* wall deflection: a target bend while the head presses into a boundary,
+     relaxing away once clear. Uses last frame's contact, which is a frame of
+     lag and no more. */
+  var wdTgt=0;
+  if(P.wdf>0){
+    var wn=intoWall();
+    if(wn){
+      var drv=-(Math.cos(psi)*wn[0]+Math.sin(psi)*wn[1]);     /* >0 driving in */
+      if(drv>0){
+        var tgx=-wn[1], tgy=wn[0];
+        if(Math.cos(psi)*tgx+Math.sin(psi)*tgy<0){ tgx=-tgx; tgy=-tgy; }
+        var dps=wrapA(Math.atan2(tgy,tgx)-psi);
+        wdTgt=P.wdf*D2R*Math.min(1,drv)*(dps>=0?1:-1);
+      }
+    }
+  }
+  wd+=(wdTgt-wd)*Math.min(1,dt/0.3);
+
+  if(P.cbs>0 && P.cbt>0.01){
+    var cbSd=P.cbs*D2R;
+    cbR += -cbR/P.cbt*dt + cbSd*Math.sqrt(6/P.cbt)*Math.sqrt(dt)*(rnd()*2-1);
+    /* A raw OU is Brownian at short times: its per-frame step scales as
+       sqrt(dt), so however slowly it wanders it is ROUGH frame to frame. In
+       this model every shape change is converted into body motion by the
+       placement step, so that roughness is rectified into forward speed -
+       measured at nearly three times the crawl rate before this filter was
+       added. Passing it through a second lag makes the curvature smooth, with
+       a per-frame step proportional to dt, which is what a held posture looks
+       like. The lag is a fixed fraction of the correlation time so there is
+       only one timescale to set. */
+    cb += (cbR-cb)*Math.min(1, dt/(P.cbt*0.125));
+  } else { cb=0; cbR=0; }
+
+  var cPre=centroid();
+  var loc=localShape();
+  contactWeights();
+  /* Place the body, then let the denticles resist being dragged backwards.
+     The test is per contact, so with width it is per row: one side of a
+     segment can be slipping while the other holds, which is what gives a
+     bend a pivot rather than a slide. */
+  var T=solvePlace(loc,wtsL,wtsR);
+  var u2=[Math.cos(psi),Math.sin(psi)], moved=false;
+  var wL2=wtsL.slice(), wR2=wtsR.slice(), j;
+  if(P.rsp>0){
+    var dstR=contactRows(world), newR=applyFit(T,contactRows(loc));
+    for(j=0;j<NP;j++){
+      var dlx=newR[j][0]-dstR[j][0], dly=newR[j][1]-dstR[j][1];
+      if(dlx*u2[0]+dly*u2[1] < 0){ wL2[j]*=P.mu; moved=true; }
+      var drx=newR[NP+j][0]-dstR[NP+j][0], dry=newR[NP+j][1]-dstR[NP+j][1];
+      if(drx*u2[0]+dry*u2[1] < 0){ wR2[j]*=P.mu; moved=true; }
+    }
+  } else {
+    var mid=applyFit(T,loc);
+    for(j=0;j<NP;j++){
+      var dx=mid[j][0]-world[j][0], dy=mid[j][1]-world[j][1];
+      if(dx*u2[0]+dy*u2[1] < 0){ wL2[j]*=P.mu; wR2[j]*=P.mu; moved=true; }
+    }
+  }
+  if(moved) T=solvePlace(loc,wL2,wR2);
+  world=applyFit(T,loc);
+
+  if(straightening && state!=='cast'){
+    /* Two couplings. The original ties the bend's travel to distance crawled,
+       which makes migration rate and turn amplitude the same mechanism and
+       means neither can match the literature (section 3.6). Tracking says that
+       coupling is wrong: real larvae move the bend from the anterior to
+       mid-body in 0.3-0.4 s having crawled 0.04-0.12 segment lengths, which is
+       essentially in place. Bend speed above zero drives it on its own clock
+       instead. The distance coupling is kept as the default so that every
+       measurement already in this README still stands. */
+    if(P.migV>0){
+      bendPos+=P.migV*dt;
+    } else {
+      var cNow=centroid();
+      var trav=Math.sqrt(Math.pow(cNow[0]-cPre[0],2)+Math.pow(cNow[1]-cPre[1],2));
+      bendPos+=P.migK*trav/SEGLEN;
+    }
+    if(bendPos>N-1+BW.length){ straightening=false; bendPos=0; bend=0; }
+  }
+
+  /* habituation state is needed by the collision response below */
+  var hitting0=intoWall();
+  var m=0.22, sx=0, sy=0;
+  for(var k=0;k<NP;k++){
+    if(world[k][0]<m) sx=Math.max(sx,m-world[k][0]);
+    if(world[k][0]>WW-m) sx=Math.min(sx,(WW-m)-world[k][0]);
+    if(world[k][1]<m) sy=Math.max(sy,m-world[k][1]);
+    if(world[k][1]>WH-m) sy=Math.min(sy,(WH-m)-world[k][1]);
+  }
+  if(sx||sy){
+    for(var k2=0;k2<NP;k2++){ world[k2][0]+=sx; world[k2][1]+=sy; }
+    if(state==='run' && t>wallCool && hitting0){
+      wallCool=t+2.0;
+      /* the response the animal still has left, not a fixed reflex */
+      var tier=(wallMode==='cast'&&wallTier>2)?2:wallTier;
+      if(tier>=3){ state='back'; dir=-1; revLeft=2; nextInit=t; waveEnd=0; }
+      else if(tier===2){ enterCast(wallDir()); }
+      else if(tier===1){ state='pause'; pauseEnd=t+expo(0.8); }
+      /* tier 0: fully habituated, keep crawling along the wall */
+    }
+  }
+
+  /* habituation: contact drives the response down, time clear brings it back */
+  var hitting=hitting0;
+  if(hitting){
+    habit*=Math.exp(-dt/Math.max(0.2,P.tdes));
+    if(t-lastClear>0.5){
+      /* a discrete touch counts for more than its own duration: the pulse
+         protocol decrements the response per pulse, not per second */
+      nContact++; lastClear=t;
+      habit*=Math.exp(-P.cdose/Math.max(0.2,P.tdes));
+    }
+  } else {
+    var tres=Math.max(0.05,P.tres*Math.exp(-P.rgain*Math.max(0,nContact-1)));
+    habit+=(1-habit)*Math.min(1,dt/tres);
+    if(t-lastClear>8){ nContact=0; }
+    lastClear=t;
+  }
+  wallTier = habit>0.66?3 : habit>0.33?2 : habit>0.12?1 : 0;
+
+  if(nearWall()){
+    if(wallSince<0) wallSince=t;
+  } else wallSince=-1;
+
+  psi=heading();
+  applyLocal(false);
+  /* evidence accumulation, only while standing on food */
+  if(mode!=='homog' && curLocal!=='agar'){
+    var cz0=centroid(), nz0=nearestPatch(cz0[0],cz0[1]), hereIdx=nz0?nz0.i:-1;
+    /* A re-entry only continues the visit if it is the SAME patch. Merging on
+       proximity alone silently fused neighbouring patches whose edges were
+       closer than the merge distance, producing one visit that spanned two
+       patches and was labelled with the wrong substrate - which inverted the
+       measured comparative effect. */
+    if(patchIn>=0 && hereIdx!==patchIdx && patchIdx>=0) closeVisit(pendOut>=0?pendOut:t);
+    if(patchIn<0){ patchIn=t; ouX=0; leaving=false; leaveT=-1; patchIdx=hereIdx; }
+    pendOut=-1;                       /* back on this patch: pending exit void */
+    if(inLS()) lsEnd=-1;              /* found food again, stop searching for it */
+    ouX+=(ouDrift()-P.oulk*ouX)*dt + P.ounz*Math.sqrt(dt)*(rnd()*2-1);
+    if(ouX<0) ouX=0;
+    if(!leaving && ouX>=1){ leaving=true; leaveT=t; }
+  } else {
+    /* A visit does not end the moment the larva steps off the patch. Return
+       trips within `Visit merge` of the patch edge count as part of the same
+       visit (Dhawan et al. use 3 cm), so the visit closes only once the larva
+       is genuinely away. Without this, every brief excursion during local
+       search logs as a separate visit and the residence statistics are
+       dominated by re-entries rather than by the leaving decision. */
+    if(patchIn>=0 && pendOut<0){ pendOut=t; pendSub=prevLocal; pendWhy=leaving?'decision':'wander'; }
+    var away=false;
+    if(pendOut>=0){
+      var cc=centroid(), nn=nearestPatch(cc[0],cc[1]);
+      /* distance from the patch this visit belongs to, with a time fallback:
+         in an arena small relative to its patches the merge distance may be
+         unreachable and a visit would never close. */
+      var dOwn=1e9;
+      if(patchIdx>=0){ var pl=patches()[patchIdx];
+        if(pl) dOwn=Math.sqrt(Math.pow(cc[0]-pl[0],2)+Math.pow(cc[1]-pl[1],2))-pl[2]; }
+      away=(dOwn>P.vmerge) || (t-pendOut)>P.vtime;
+    }
+    if(patchIn>=0 && away) closeVisit(pendOut);
+  }
+  if(curLocal!=='agar' && mode!=='homog') timeIn+=dt;
+  /* border occupancy, scored on the centroid like the tracking studies do */
+  var cz=centroid();
+  if(cz[0]<P.bw||cz[0]>WW-P.bw||cz[1]<P.bw||cz[1]>WH-P.bw) timeBorder+=dt;
+
+  if(pend && (!straightening || t>=pend.due)){
+    lastTurn=wrapA(psi-pend.psi0)*R2D;
+    sumTurn+=Math.abs(lastTurn); nTurns++;
+    turnLog.push([t.toFixed(3),lastTurn.toFixed(2),nCast,curLocal]);
+    pend=null;
+  }
+  if(state==='run'&&spont&&t>runEnd) enterCast(chooseDir());
+
+  var c=centroid(), dcx=c[0]-cx0, dcy=c[1]-cy0, dd=Math.sqrt(dcx*dcx+dcy*dcy);
+  pathLen+=dd;
+  speedAvg+=((dd/dt)-speedAvg)*Math.min(1,dt*0.5);
+  if(dd>0.0002){
+    trx.strokeStyle=(curLocal!=='agar'&&mode!=='homog')?SUBCOL[curLocal].trail:'rgba(127,119,221,1)';
+    trx.lineWidth=2.4; trx.lineCap='round';
+    trx.beginPath();
+    trx.moveTo(cx0/WW*TR.width,cy0/WH*TR.height);
+    trx.lineTo(c[0]/WW*TR.width,c[1]/WH*TR.height);
+    trx.stroke();
+  }
+  cx0=c[0]; cy0=c[1];
+
+  if(t-lastHist>=HIST_DT){ lastHist=t; histPush(); }
+
+}
+
+function reset(){
+  seedRng(P.seed);
+  t=0; initBody(); psi=heading();
+  var c=centroid(); cx0=c[0]; cy0=c[1]; lastCX=null; lastCY=null;
+  onset=new Array(N).fill(-1e9); queue=[]; dir=1; nextInit=0; waveEnd=0;
+  state='run'; bend=0; bendPos=0; cb=0; cbR=0; wd=0; straightening=false; wallSince=-1;
+  nCast=0; revLeft=0; decided=false; pend=null; wallCool=0;
+  nTurns=0; nWaves=0; sumTurn=0; lastTurn=0; strideMM=0; speedAvg=0; pathLen=0;
+  timeIn=0; patchVisits=0; timeBorder=0; curLocal=''; strideSum=0; strideN=0;
+  habit=1; nContact=0; lastClear=0; wallTier=3; lsEnd=-1;
+  ouX=0; leaving=false; memQ=-1; memT=-1e9; lastRes=0; patchIn=-1;
+  resSum=0; resN=0; prevLocal='agar'; pendOut=-1; pendSub='agar'; patchIdx=-1;
+  pendWhy='wander'; nDecide=0; nWander=0;
+  hCount=0; hTotal=0; lastHist=-1e9; scrubbing=false; kcur=0; jcur=0;
+  scx.clearRect(0,0,SC.width,SC.height);
+  document.getElementById('live').className='';
+  imported=false; importNote='';
+  turnLog=[]; visitLog=[]; leaveT=-1; wvPh=rnd()*6.283; runEnd=runLen();
+  trx.clearRect(0,0,TR.width,TR.height);
+  kb.fillStyle=PB(); kb.fillRect(0,0,KB.width,KB.height); kcur=0;
+  jb.fillStyle=PB(); jb.fillRect(0,0,JB.width,JB.height); jcur=0;
+  applyLocal(true);
+}
+
+function fit(c,ctx){
+  var r=c.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+  var w=Math.max(60,Math.floor(r.width)), h=Math.max(50,Math.floor(r.height));
+  if(c.width!==Math.round(w*dpr)||c.height!==Math.round(h*dpr)){
+    c.width=Math.round(w*dpr); c.height=Math.round(h*dpr); }
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return [w,h];
+}
+
+function drawArena(){
+  var s=fit(A,ax), W=s[0], H=s[1];
+  ax.fillStyle=PB(); ax.fillRect(0,0,W,H);
+  var sc=arenaView(W,H);
+  ax.save(); ax.translate(vTx,vTy);
+
+  if(mode==='homog'){
+    ax.fillStyle=SUBCOL[subs].fill; ax.fillRect(0,0,WW*sc,WH*sc);
+  } else {
+    ax.fillStyle=SUBCOL.agar.fill; ax.fillRect(0,0,WW*sc,WH*sc);
+    var ps=patches();
+    for(var i=0;i<ps.length;i++){
+      var col=SUBCOL[ps[i][3]]||SUBCOL.agar;
+      ax.beginPath(); ax.arc(ps[i][0]*sc,ps[i][1]*sc,ps[i][2]*sc,0,6.283185);
+      ax.fillStyle=col.fill; ax.fill();
+      ax.strokeStyle=col.line; ax.lineWidth=1.5; ax.stroke();
+    }
+  }
+
+  if(zoom<=2.5 || !hCount){
+    ax.globalAlpha=P.tr; ax.drawImage(scrubbing?SC:TR,0,0,WW*sc,WH*sc); ax.globalAlpha=1;
+  } else {
+    /* vector trail: the bitmap is sized for the whole arena, so magnifying it
+       just magnifies its pixels. Subsample to bound the work on long runs. */
+    var last=scrubbing?scrubIdx:hCount-1, step=Math.max(1,Math.ceil(hCount/12000));
+    ax.globalAlpha=P.tr; ax.lineWidth=Math.max(1,0.05*sc);
+    ax.lineCap='round'; ax.lineJoin='round';
+    var cur=null;
+    for(var ti=0;ti<=last;ti+=step){
+      var to=FW*histAt(ti);
+      var tcol=(mode!=='homog'&&LNAME[HIST[to+2]]!=='agar')?SUBCOL[LNAME[HIST[to+2]]].trail:'rgba(127,119,221,1)';
+      if(tcol!==cur){ if(cur!==null) ax.stroke(); ax.strokeStyle=tcol; ax.beginPath();
+        ax.moveTo(HIST[to+60]*sc,HIST[to+61]*sc); cur=tcol; }
+      else ax.lineTo(HIST[to+60]*sc,HIST[to+61]*sc);
+    }
+    if(cur!==null) ax.stroke();
+    ax.globalAlpha=1;
+  }
+  ax.strokeStyle=css('--line')||'#ddd'; ax.lineWidth=1.5;
+  ax.strokeRect(0.75,0.75,WW*sc-1.5,WH*sc-1.5);
+
+  /* Body as a tapered outline rather than a row of round-capped strokes:
+     adjacent segments share their edge exactly, so the silhouette is smooth
+     at any magnification and each segment still carries its own colour.
+     Contraction is shown by hue, not alpha, so overlaps cannot stack. */
+  var rP=[], nrm=[], j2;
+  /* the drawn silhouette is the mechanical width, with a floor so that a
+     zero-width body is still visible as a body rather than vanishing */
+  for(j2=0;j2<=N;j2++) rP.push(bodyHalfW(j2)*sc);
+  for(j2=0;j2<=N;j2++){
+    var pa=dWorld[Math.max(0,j2-1)], pb=dWorld[Math.min(N,j2+1)];
+    var ux=pb[0]-pa[0], uy=pb[1]-pa[1], ul=Math.hypot(ux,uy)||1;
+    nrm.push([-uy/ul, ux/ul]);
+  }
+  for(var i2=0;i2<N;i2++){
+    var a=dC[i2];
+    var cr=Math.round(150+(16-150)*a), cg=Math.round(206+(112-206)*a), cb=Math.round(188+(82-188)*a);
+    var p0=dWorld[i2], p1=dWorld[i2+1], n0=nrm[i2], n1=nrm[i2+1], r0=rP[i2], r1=rP[i2+1];
+    ax.fillStyle='rgb('+cr+','+cg+','+cb+')';
+    ax.beginPath();
+    ax.moveTo(p0[0]*sc+n0[0]*r0, p0[1]*sc+n0[1]*r0);
+    ax.lineTo(p1[0]*sc+n1[0]*r1, p1[1]*sc+n1[1]*r1);
+    ax.lineTo(p1[0]*sc-n1[0]*r1, p1[1]*sc-n1[1]*r1);
+    ax.lineTo(p0[0]*sc-n0[0]*r0, p0[1]*sc-n0[1]*r0);
+    ax.closePath(); ax.fill();
+    /* a hairline of the same colour closes the seam between quads */
+    ax.strokeStyle=ax.fillStyle; ax.lineWidth=Math.max(0.5,0.008*sc); ax.stroke();
+  }
+  /* rounded head and tail caps */
+  var capA=dC[0], capB=dC[N-1];
+  ax.fillStyle='rgb('+Math.round(150+(16-150)*capA)+','+Math.round(206+(112-206)*capA)+','+Math.round(188+(82-188)*capA)+')';
+  ax.beginPath(); ax.arc(dWorld[0][0]*sc,dWorld[0][1]*sc,rP[0],0,6.283185); ax.fill();
+  ax.fillStyle='rgb('+Math.round(150+(16-150)*capB)+','+Math.round(206+(112-206)*capB)+','+Math.round(188+(82-188)*capB)+')';
+  ax.beginPath(); ax.arc(dWorld[N][0]*sc,dWorld[N][1]*sc,rP[N],0,6.283185); ax.fill();
+  /* segment boundaries drawn over the body, so the wave is countable */
+  if(sc>14){
+    ax.strokeStyle='rgba(40,70,60,0.30)'; ax.lineWidth=Math.max(0.6,0.010*sc);
+    for(var i3=1;i3<N;i3++){
+      var q=dWorld[i3], nq=nrm[i3], rq=rP[i3];
+      ax.beginPath();
+      ax.moveTo(q[0]*sc-nq[0]*rq, q[1]*sc-nq[1]*rq);
+      ax.lineTo(q[0]*sc+nq[0]*rq, q[1]*sc+nq[1]*rq);
+      ax.stroke();
+    }
+  }
+  /* The two denticle rows, drawn where they actually grip. Each band is a
+     tick across the body margin, and its length and opacity are that row's
+     contact weight - so with Grip asym above 0 the inside of a bend visibly
+     holds while the outside lets go. Live weights only: the history buffer
+     stores one contact value per segment, not two. */
+  if(P.rsp>0 && sc>10 && !scrubbing){
+    for(var jd=0;jd<NP;jd++){
+      var nd=nrm[jd], rd=rowOff(jd)*sc, pd=dWorld[jd];
+      var mx=Math.max(wtsL[jd],wtsR[jd],0.001);
+      for(var side=0;side<2;side++){
+        var g=(side?wtsR[jd]:wtsL[jd])/mx, sg=side?-1:1;
+        var bx=pd[0]*sc+sg*nd[0]*rd, by=pd[1]*sc+sg*nd[1]*rd;
+        var tl=(0.30+0.70*g)*rP[jd]*0.55;
+        ax.strokeStyle='rgba(60,46,40,'+(0.22+0.60*g).toFixed(3)+')';
+        ax.lineWidth=Math.max(0.6,0.013*sc);
+        ax.beginPath();
+        ax.moveTo(bx,by);
+        ax.lineTo(bx-sg*nd[0]*tl, by-sg*nd[1]*tl);
+        ax.stroke();
+      }
+    }
+  }
+  ax.strokeStyle='rgba(60,60,58,0.45)'; ax.lineWidth=Math.max(0.5,0.014*sc);
+  ax.beginPath();
+  for(var k=0;k<NP;k++){ k?ax.lineTo(dWorld[k][0]*sc,dWorld[k][1]*sc):ax.moveTo(dWorld[k][0]*sc,dWorld[k][1]*sc); }
+  ax.stroke();
+  var lab=(sc>26);
+  for(var j=0;j<NP;j++){
+    var p=dWorld[j], rr=Math.max(1.2,0.05*sc), planted=(dW[j]>0.55);
+    ax.beginPath(); ax.arc(p[0]*sc,p[1]*sc,rr,0,6.283185);
+    if(planted){
+      ax.fillStyle=(j===0)?'rgba(83,74,183,0.95)':(j===N?'rgba(186,117,23,0.95)':'rgba(70,70,66,0.95)');
+      ax.fill();
+    } else {
+      ax.fillStyle=PB(); ax.fill();
+      ax.strokeStyle='rgba(216,90,48,0.95)'; ax.lineWidth=Math.max(1,0.018*sc); ax.stroke();
+    }
+    if(lab && j>0 && j<N){
+      ax.fillStyle=css('--tx2')||'#888'; ax.font='9px sans-serif';
+      ax.fillText(BL[j-1],p[0]*sc+rr+2,p[1]*sc-rr-1);
+    }
+  }
+  ax.restore(); ax.save();
+  ax.fillStyle=css('--tx2')||'#888'; ax.font='10px sans-serif';
+  var desc=(mode==='homog')?(geno+' on uniform '+subs)
+          :(geno+' \u00b7 '+patches().length+' '+(mixed?subs+'/'+altSub():subs)+' patches (r '+patchR().toFixed(0)+' mm) on agar');
+  ax.fillText(WW.toFixed(0)+' \u00d7 '+WH.toFixed(0)+' mm \u00b7 larva 4 mm \u00b7 '+desc+
+              (scrubbing?'  \u00b7 REPLAY t='+dT.toFixed(1)+' s':''),5,H-6);
+  if(importNote){ ax.fillStyle=css('--tx2')||'#888';
+    ax.fillText('imported: '+importNote,5,H-19); }
+  if(zoom>1.0001){
+    ax.fillText(zoom.toFixed(1)+'\u00d7 \u00b7 '+(follow?'following larva':'drag to pan')+
+                ' \u00b7 double-click to fit',6,14);
+  }
+  ax.restore();
+}
+
+/* One column per history sample, so the time axis is simulated seconds and
+   does not compress when the sim-speed slider is raised. */
+function kymoColumn(H,o){
+  var GUT=24, W=KB.width-GUT, Hh=KB.height, row=Hh/N, i;
+  if(kcur>=W){ kb.drawImage(KB,GUT+1,0,W-1,Hh,GUT,0,W-1,Hh); kcur=W-1; }
+  var x=GUT+kcur;
+  kb.fillStyle=PB(); kb.fillRect(x,0,1,Hh);
+  for(i=0;i<N;i++){
+    var a=H[o+27+i];
+    if(a>0.004){ kb.fillStyle='rgba(29,158,117,'+a.toFixed(3)+')'; kb.fillRect(x,i*row,1,row+0.6); }
+    if(H[o+38+i]<0.55){ kb.fillStyle='rgba(216,90,48,0.6)'; kb.fillRect(x,i*row,1,2.2); }
+  }
+  var GJ=38, WJ=JB.width-GJ, HJ=JB.height, rowJ=HJ/NB, FS=25;
+  if(jcur>=WJ){ jb.drawImage(JB,GJ+1,0,WJ-1,HJ,GJ,0,WJ-1,HJ); jcur=WJ-1; }
+  var xj=GJ+jcur;
+  jb.fillStyle=PB(); jb.fillRect(xj,0,1,HJ);
+  for(i=1;i<N;i++){
+    var dg=H[o+49+i]*R2D, m=Math.min(1,Math.abs(dg)/FS);
+    if(m>0.02){
+      jb.fillStyle=(dg>0?'rgba(29,158,117,':'rgba(216,90,48,')+m.toFixed(3)+')';
+      jb.fillRect(xj,(i-1)*rowJ,1,rowJ+0.6);
+    }
+  }
+  kcur++; jcur++;
+}
+function kymoLabels(){
+  var GUT=24, Hh=KB.height, row=Hh/N, j;
+  kb.fillStyle=PB(); kb.fillRect(0,0,GUT,Hh);
+  kb.fillStyle=css('--tx2')||'#888'; kb.font='9.5px sans-serif';
+  for(j=0;j<N;j++) kb.fillText(SEG[j],3,j*row+row/2+3);
+  var GJ=38, HJ=JB.height, rowJ=HJ/NB;
+  jb.fillStyle=PB(); jb.fillRect(0,0,GJ,HJ);
+  jb.fillStyle=css('--tx2')||'#888'; jb.font='9px sans-serif';
+  for(j=0;j<NB;j++) jb.fillText(BL[j],2,j*rowJ+rowJ/2+3);
+}
+/* redraw both kymographs from history, ending at sample idx */
+function rebuildKymo(idx){
+  kb.fillStyle=PB(); kb.fillRect(0,0,KB.width,KB.height);
+  jb.fillStyle=PB(); jb.fillRect(0,0,JB.width,JB.height);
+  kcur=0; jcur=0;
+  var W=KB.width-24, from=Math.max(0,idx-W+1);
+  for(var i=from;i<=idx;i++) kymoColumn(HIST,FW*histAt(i));
+  kymoLabels();
+}
+function drawKymo(){
+  kymoLabels();
+  var s=fit(K,kx); kx.fillStyle=PB(); kx.fillRect(0,0,s[0],s[1]);
+  kx.drawImage(KB,0,0,s[0],s[1]);
+}
+
+function drawJang(){
+  var s=fit(J,jx); jx.fillStyle=PB(); jx.fillRect(0,0,s[0],s[1]);
+  jx.drawImage(JB,0,0,s[0],s[1]);
+}
+
+function stats(){
+  /* reads the display layer, so a replayed frame shows that frame's numbers */
+  var mj=0; for(var i=1;i<N;i++) mj=Math.max(mj,Math.abs(dB[i]*R2D));
+  var ha=wrapA(Math.atan2(dWorld[0][1]-dWorld[2][1],dWorld[0][0]-dWorld[2][0])
+              -Math.atan2(dWorld[3][1]-dWorld[N][1],dWorld[3][0]-dWorld[N][0]))*R2D;
+  var ct=0; for(var j=0;j<NP;j++) if(dW[j]>0.55) ct++;
+  document.getElementById('s_state').textContent=imported?'imported':((dState==='back')?'backward':dState);
+  document.getElementById('s_loc').textContent=(dLS?'search ':'')+(dLocal||subs);
+  document.getElementById('s_sp').textContent=Math.max(0,dSpeed).toFixed(2);
+  document.getElementById('s_st').textContent=dStride?dStride.toFixed(2):'\u2014';
+  document.getElementById('s_ip').textContent=(mode==='homog'||dT<1)?'\u2014':(100*dTimeIn/dT).toFixed(0);
+  document.getElementById('s_pv').textContent=(mode==='homog')?'\u2014':dVisits;
+  document.getElementById('s_bd').textContent=(dT<1)?'\u2014':(100*dBorder/dT).toFixed(0);
+  document.getElementById('s_rs').textContent=dResN?(dResSum/dResN).toFixed(0):'\u2014';
+  document.getElementById('s_ou').textContent=dOu.toFixed(2)+(dLeav?' \u2192out':'');
+  var nv=dDec+dWan;
+  document.getElementById('s_dw').textContent=nv?(100*dDec/nv).toFixed(0):'\u2014';
+  document.getElementById('s_wr').textContent=
+    ['none','pause','turn','rev'][dTier]+' '+(100*dHabit).toFixed(0)+'%';
+  document.getElementById('s_ha').textContent=ha.toFixed(0)+'\u00b0'+(Math.abs(ha)>37?' *':'');
+  document.getElementById('s_mj').textContent=mj.toFixed(1)+'\u00b0';
+  document.getElementById('s_tm').textContent=dT>30?(dTurns/(dT/60)).toFixed(2):'\u2014';
+  document.getElementById('s_mt').textContent=dTurns?(dSumTurn/dTurns).toFixed(0)+'\u00b0':'\u2014';
+  document.getElementById('s_pl').textContent=dPath.toFixed(0);
+  document.getElementById('s_t').textContent=dT.toFixed(1)+' s';
+}
+
+var last=performance.now();
+function loop(now){
+  var dt=Math.min(0.05,(now-last)/1000); last=now;
+  if(replaying&&scrubbing){
+    rAcc+=dt*rspdVal;
+    var adv=Math.floor(rAcc/HIST_DT);
+    if(adv>0){
+      rAcc-=adv*HIST_DT;
+      if(scrubIdx+adv>=hCount-1){ goScrub(hCount-1,true); stopReplay(); }
+      else { goScrub(scrubIdx+adv,true); document.getElementById('scrub').value=scrubIdx; }
+    }
+  }
+  if(running&&!scrubbing){
+    /* integration step; overridable from a headless driver so step-size
+       studies do not need a patched copy of this file */
+    var h=(typeof __LARVA_H==='number'?__LARVA_H:0.002);
+    var n2=Math.max(1,Math.min(6000,Math.round(dt*P.spd/h)));
+    for(var i=0;i<n2;i++){ t+=h; stepSim(h); }
+    syncDisplay();
+    updateScrubRange();
+  }
+  drawKymo(); drawJang();
+  /* the arena is redrawn whether or not the clock is running, so changing the
+     arena type, patch radius or substrate is visible before pressing play.
+     The kymographs are not — they would scroll on a paused simulation. */
+  drawArena(); stats();
+  requestAnimationFrame(loop);
+}
+
+var replaying=false, rAcc=0, rspdVal=1;
+function stopReplay(){
+  replaying=false;
+  document.getElementById('rplay').innerHTML='\u25b6 Replay';
+  document.getElementById('rplay').className='';
+}
+function toggleReplay(){
+  if(!hCount) return;
+  if(replaying){ stopReplay(); return; }
+  /* starting from the live end means starting over */
+  if(!scrubbing||scrubIdx>=hCount-1) goScrub(0);
+  replaying=true; rAcc=0;
+  document.getElementById('rplay').innerHTML='\u275a\u275a Pause';
+  document.getElementById('rplay').className='on';
+}
+function updateScrubRange(){
+  var sl=document.getElementById('scrub');
+  sl.max=Math.max(0,hCount-1);
+  if(!scrubbing){ sl.value=sl.max;
+    document.getElementById('v_scrub').textContent=dT.toFixed(1)+' s';
+  }
+}
+/* the live trail canvas is cumulative, so a replayed frame needs its own
+   trail redrawn from the stored centroids up to that sample */
+function rebuildTrail(idx){
+  scx.clearRect(0,0,SC.width,SC.height);
+  scx.lineWidth=2.4; scx.lineCap='round'; scx.lineJoin='round';
+  /* batched by colour: one path per in/out-of-patch run, not one stroke per
+     sample, so dragging stays responsive with tens of thousands of points */
+  var H=HIST, cur=null, px=0, py=0;
+  for(var i=0;i<=idx;i++){
+    var o=FW*histAt(i), x=H[o+60]/WW*SC.width, y=H[o+61]/WH*SC.height;
+    var col=(mode!=='homog'&&LNAME[H[o+2]]!=='agar')?SUBCOL[LNAME[H[o+2]]].trail:'rgba(127,119,221,1)';
+    if(col!==cur){
+      if(cur!==null) scx.stroke();
+      scx.strokeStyle=col; scx.beginPath();
+      scx.moveTo(i?px:x,i?py:y); cur=col;
+    }
+    scx.lineTo(x,y); px=x; py=y;
+  }
+  if(cur!==null) scx.stroke();
+}
+/* extend the replay trail by one sample instead of redrawing all of it */
+function trailStep(from,to){
+  var H=HIST;
+  scx.lineWidth=2.4; scx.lineCap='round'; scx.lineJoin='round';
+  for(var i=from+1;i<=to;i++){
+    var a=FW*histAt(i-1), b=FW*histAt(i);
+    scx.strokeStyle=(mode!=='homog'&&LNAME[H[b+2]]!=='agar')?SUBCOL[LNAME[H[b+2]]].trail:'rgba(127,119,221,1)';
+    scx.beginPath();
+    scx.moveTo(H[a+60]/WW*SC.width,H[a+61]/WH*SC.height);
+    scx.lineTo(H[b+60]/WW*SC.width,H[b+61]/WH*SC.height);
+    scx.stroke();
+  }
+}
+function goScrub(i,inc){
+  if(!hCount) return;
+  var prev=scrubIdx, was=scrubbing;
+  scrubIdx=Math.max(0,Math.min(hCount-1,i));
+  scrubbing=true;
+  loadFrame(scrubIdx);
+  /* a small forward step during playback only needs the new columns */
+  if(inc&&was&&scrubIdx>prev&&scrubIdx-prev<400){
+    trailStep(prev,scrubIdx);
+    for(var k=prev+1;k<=scrubIdx;k++) kymoColumn(HIST,FW*histAt(k));
+    kymoLabels();
+  } else { rebuildTrail(scrubIdx); rebuildKymo(scrubIdx); }
+  document.getElementById('v_scrub').textContent=dT.toFixed(1)+' s';
+  document.getElementById('live').className='on';
+  stats(); drawArena();
+}
+function goLive(){
+  stopReplay();
+  if(!scrubbing) return;
+  scrubbing=false;
+  syncDisplay();
+  rebuildKymo(hCount-1);
+  updateScrubRange();
+  document.getElementById('live').className='';
+  stats(); drawArena();
+}
+/* ---- arena zoom and pan -------------------------------------------------
+   Wheel zooms about the cursor, so the point under the pointer stays put.
+   Dragging pans (and turns Follow off, since the two fight each other).
+   Double-click returns to the fitted view. */
+var ZMIN=1, ZMAX=40;
+function setZoom(z,px,py){
+  var before=(px===undefined)?null:toWorld(px,py);
+  zoom=Math.max(ZMIN,Math.min(ZMAX,z));
+  if(zoom<=1.0001){ zoom=1; panX=-1; panY=-1; }
+  else if(before && !follow){
+    /* keep the world point under the cursor fixed: recompute the view with
+       the new zoom, then shift the pan centre by however far it moved */
+    var r=A.getBoundingClientRect();
+    arenaView(Math.max(60,Math.floor(r.width)),Math.max(50,Math.floor(r.height)));
+    var after=toWorld(px,py);
+    if(panX<0){ panX=WW/2; panY=WH/2; }
+    panX+=before[0]-after[0]; panY+=before[1]-after[1];
+  }
+  var zs=document.getElementById('zm');
+  if(zs){ zs.value=zoom; document.getElementById('v_zm').textContent=zoom.toFixed(1)+'x'; }
+  drawArena();
+}
+(function(){
+  var dragging=false, lastX=0, lastY=0, moved=false;
+  A.addEventListener('wheel',function(e){
+    e.preventDefault();
+    var r=A.getBoundingClientRect();
+    setZoom(zoom*(e.deltaY<0?1.15:1/1.15), e.clientX-r.left, e.clientY-r.top);
+  },{passive:false});
+  A.addEventListener('mousedown',function(e){
+    if(zoom<=1.0001) return;
+    dragging=true; moved=false; lastX=e.clientX; lastY=e.clientY;
+    A.style.cursor='grabbing';
+  });
+  window.addEventListener('mousemove',function(e){
+    if(!dragging) return;
+    var dx=e.clientX-lastX, dy=e.clientY-lastY;
+    if(Math.abs(dx)+Math.abs(dy)>2) moved=true;
+    lastX=e.clientX; lastY=e.clientY;
+    if(follow){ follow=false; document.getElementById('foll').className=''; }
+    if(panX<0){ panX=dCx||WW/2; panY=dCy||WH/2; }
+    panX-=dx/vSc; panY-=dy/vSc;
+    drawArena();
+  });
+  window.addEventListener('mouseup',function(){
+    if(dragging){ dragging=false; A.style.cursor=''; }
+  });
+  A.addEventListener('dblclick',function(){ setZoom(1); });
+})();
+function pick(ids,on){ ids.forEach(function(i){ document.getElementById(i).className=(i===on)?'on':''; }); }
+var GB=['g_rov','g_sit'], SB=['s_agar','s_suc','s_yeast'], MB=['m_hom','m_p1','m_p2','m_p4'];
+document.getElementById('g_rov').onclick=function(){geno='rover';pick(GB,'g_rov');applyLocal(true);};
+document.getElementById('g_sit').onclick=function(){geno='sitter';pick(GB,'g_sit');applyLocal(true);};
+document.getElementById('s_agar').onclick=function(){subs='agar';pick(SB,'s_agar');applyLocal(true);};
+document.getElementById('s_suc').onclick=function(){subs='sucrose';pick(SB,'s_suc');applyLocal(true);};
+document.getElementById('s_yeast').onclick=function(){subs='yeast';pick(SB,'s_yeast');applyLocal(true);};
+document.getElementById('m_hom').onclick=function(){mode='homog';pick(MB,'m_hom');applyLocal(true);};
+document.getElementById('m_p1').onclick=function(){mode='p1';pick(MB,'m_p1');applyLocal(true);};
+document.getElementById('m_p2').onclick=function(){mode='p2';pick(MB,'m_p2');applyLocal(true);};
+document.getElementById('m_p4').onclick=function(){mode='p4';pick(MB,'m_p4');applyLocal(true);};
+document.getElementById('w_rev').onclick=function(){wallMode='rev';pick(['w_rev','w_cast'],'w_rev');};
+document.getElementById('w_cast').onclick=function(){wallMode='cast';pick(['w_rev','w_cast'],'w_cast');};
+document.getElementById('spont').onclick=function(){spont=!spont;this.className=spont?'on':'';if(spont)runEnd=t+runLen();};
+document.getElementById('pp').onclick=function(){
+  /* imported frames are someone else's data; running the model on top of them
+     would splice two unrelated trajectories, so play clears the import */
+  if(imported){ imported=false; importNote=''; reset(); }
+  if(scrubbing) goLive();
+  running=!running; last=performance.now();
+  this.textContent=running?'Pause':'Play';
+};
+document.getElementById('bcast').onclick=function(){enterCast(chooseDir());};
+document.getElementById('brev').onclick=function(){state='back';dir=-1;revLeft=2;nextInit=t;waveEnd=0;};
+document.getElementById('mix').onclick=function(){
+  mixed=!mixed; this.className=mixed?'on':''; applyLocal(true);
+};
+document.getElementById('rst').onclick=reset;
+var HPRESET={h_wt:[18.9,5.3],h_rut:[5.2,3.6],h_dnc:[14.3,9.8],h_cam:[25.6,6.5]};
+var HB=['h_wt','h_rut','h_dnc','h_cam'];
+HB.forEach(function(id){
+  document.getElementById(id).onclick=function(){
+    setP('tdes',HPRESET[id][0]); setP('tres',HPRESET[id][1]); pick(HB,id);
+  };
+});
+var scrubEl=document.getElementById('scrub');
+scrubEl.addEventListener('input',function(){ stopReplay(); goScrub(parseInt(scrubEl.value,10)); });
+/* ===========================================================================
+   Clip recording.
+
+   The replay already knows how to seek to a history index and redraw
+   everything for it (goScrub), so recording is that operation on a timer with
+   the canvas handed to a MediaRecorder. Nothing about the simulation is
+   re-run: a clip is a rendering of the replay buffer, so it cannot disagree
+   with what the scrubber shows.
+
+   Frames are pushed by hand through a 0-fps capture stream rather than letting
+   the recorder sample the canvas on its own clock. Sampling drops or repeats
+   frames whenever the tab is busy; pushing one frame per rendered step keeps
+   the video in step with the simulation. The cost is that the recorder stamps
+   each frame with wall-clock time, so the clip has to be made in real time -
+   a 20 s clip takes 20 s. That is the reason this records clips and not whole
+   runs: an hour of simulated time at 1x would take an hour to film.
+   =========================================================================== */
+var clipIn=-1, clipOut=-1, recording=false, recStop=null;
+function clipT(i){ return (i>=0&&i<hCount) ? HIST[FW*histAt(i)] : 0; }
+function clipRange(){
+  var a=(clipIn<0?0:Math.min(clipIn,hCount-1));
+  var b=(clipOut<0?hCount-1:Math.min(clipOut,hCount-1));
+  if(b<a){ var t2=a; a=b; b=t2; }
+  return [a,b];
+}
+function updateClipLabel(){
+  var el=document.getElementById('v_clip');
+  if(!el) return;
+  if(!hCount){ el.textContent='no run yet'; return; }
+  if(clipIn<0&&clipOut<0){ el.textContent='whole run'; return; }
+  var r=clipRange(), span=clipT(r[1])-clipT(r[0]);
+  var rate=parseFloat(document.getElementById('crate').value)||20;
+  el.textContent=clipT(r[0]).toFixed(0)+'–'+clipT(r[1]).toFixed(0)+' s · '+
+    Math.max(1,Math.round(span/rate))+' s video';
+}
+function recMime(){
+  if(typeof MediaRecorder==='undefined') return null;
+  var opts=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4'];
+  for(var i=0;i<opts.length;i++)
+    if(MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(opts[i])) return opts[i];
+  return null;
+}
+function recordClip(){
+  if(recording){ if(recStop) recStop(); return; }
+  if(!hCount){ return; }
+  var mime=recMime();
+  if(!mime || !A.captureStream){
+    document.getElementById('v_clip').textContent='no video support here';
+    return;
+  }
+  var FPS=30;
+  var rate=parseFloat(document.getElementById('crate').value)||20;
+  var r=clipRange(), i0=r[0], i1=r[1];
+  /* history indices to advance per output frame */
+  var stepPerFrame=rate/(FPS*HIST_DT);
+  if(!(stepPerFrame>0)) stepPerFrame=1;
+  var total=Math.max(2,Math.ceil((i1-i0)/stepPerFrame));
+
+  var stream, rec, chunks=[];
+  try{
+    stream=A.captureStream(0);
+    rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:6000000});
+  }catch(e){
+    document.getElementById('v_clip').textContent='recorder refused: '+(e.message||e);
+    return;
+  }
+  var track=stream.getVideoTracks()[0];
+  rec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
+  rec.onstop=function(){
+    recording=false;
+    document.getElementById('crec').innerHTML='● Clip';
+    document.getElementById('crec').className='';
+    var ext=/mp4/.test(mime)?'mp4':'webm';
+    var blob=new Blob(chunks,{type:mime});
+    var u=URL.createObjectURL(blob), a2=document.createElement('a');
+    a2.href=u; a2.download=baseName()+'_clip.'+ext; a2.click();
+    setTimeout(function(){ URL.revokeObjectURL(u); },1000);
+    document.getElementById('v_clip').textContent=
+      (blob.size/1048576).toFixed(1)+' MB '+ext+' saved';
+    try{ track.stop(); }catch(e){}
+  };
+
+  recording=true;
+  stopReplay();
+  document.getElementById('crec').innerHTML='■ Stop';
+  document.getElementById('crec').className='on';
+  rec.start();
+
+  var f=0, pos=i0;
+  goScrub(Math.round(pos),false);
+  var timer=setInterval(function(){
+    if(!recording){ clearInterval(timer); return; }
+    goScrub(Math.round(pos), true);
+    try{ track.requestFrame(); }catch(e){}
+    document.getElementById('v_clip').textContent='recording '+(f+1)+'/'+total;
+    pos+=stepPerFrame; f++;
+    if(f>=total){ clearInterval(timer); recording=false; try{ rec.stop(); }catch(e){} }
+  },1000/FPS);
+  recStop=function(){ clearInterval(timer); recording=false; try{ rec.stop(); }catch(e){} };
+}
+document.getElementById('cin').onclick=function(){
+  if(!hCount) return;
+  clipIn=scrubbing?scrubIdx:hCount-1; updateClipLabel();
+};
+document.getElementById('cout').onclick=function(){
+  if(!hCount) return;
+  clipOut=scrubbing?scrubIdx:hCount-1; updateClipLabel();
+};
+document.getElementById('crate').addEventListener('change',updateClipLabel);
+document.getElementById('crec').onclick=recordClip;
+
+document.getElementById('rplay').onclick=toggleReplay;
+var zmEl=document.getElementById('zm');
+zmEl.addEventListener('input',function(){
+  setZoom(parseFloat(zmEl.value));
+  document.getElementById('v_zm').textContent=zoom.toFixed(1)+'x';
+});
+document.getElementById('foll').onclick=function(){
+  follow=!follow; this.className=follow?'on':'';
+  if(follow){ panX=-1; panY=-1; }
+  drawArena();
+};
+var rspdEl=document.getElementById('rspd');
+rspdEl.addEventListener('input',function(){
+  rspdVal=parseFloat(rspdEl.value);
+  document.getElementById('v_rspd').textContent=rspdVal.toFixed(1)+'x';
+});
+document.getElementById('live').onclick=goLive;
+/* one group at a time collapses the control block to a couple of rows; All
+   still fits in roughly half the height it used to, now that each row is one
+   line instead of two */
+(function(){
+  var ctl=document.getElementById('ctl');
+  var panels=ctl.getElementsByClassName('panel');
+  var tabs=document.querySelectorAll('.tab');
+  function apply(which){
+    var single=(which!=='all');
+    ctl.className='controls '+(single?'single':'all');
+    for(var i=0;i<panels.length;i++)
+      panels[i].className='panel'+((single&&String(i)!==which)?' off':'');
+    for(var j=0;j<tabs.length;j++)
+      tabs[j].className='tab'+(tabs[j].getAttribute('data-tab')===which?' on':'');
+  }
+  for(var k=0;k<tabs.length;k++) tabs[k].onclick=function(){ apply(this.getAttribute('data-tab')); };
+})();
+document.getElementById('hide').onclick=function(){
+  var c=document.getElementById('ctl'), off=c.className.indexOf('hide')<0;
+  c.className=c.className.replace(/ ?hide/,'')+(off?' hide':'');
+  this.textContent=off?'Show controls':'Hide controls';
+};
+
+/* ---- file naming and saving ----------------------------------------------
+   Browsers cannot be told a path by a page; the download goes wherever the
+   browser is configured to put downloads. Where the File System Access API is
+   available (Chromium over http(s)) the save picker is used instead, which
+   does let you choose folder and name. Everything falls back to a plain
+   download named from the prefix field. */
+function stamp(){
+  var d=new Date(), z=function(n){return (n<10?'0':'')+n;};
+  return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+'_'+z(d.getHours())+z(d.getMinutes());
+}
+function baseName(){
+  var v=(document.getElementById('fname').value||'').trim();
+  if(!v) v='larva_'+geno+'_'+subs+'_'+mode+'_'+stamp();
+  return v.replace(/[\\/:*?"<>|]+/g,'_').replace(/\.csv$/i,'');
+}
+function dl(n,txt){
+  if(window.showSaveFilePicker){
+    window.showSaveFilePicker({suggestedName:n,
+      types:[{description:'CSV (opens in Excel)',accept:{'text/csv':['.csv']}}]})
+      .then(function(h){ return h.createWritable(); })
+      .then(function(w){ return w.write(txt).then(function(){ return w.close(); }); })
+      .catch(function(){ dlFallback(n,txt); });
+    return;
+  }
+  dlFallback(n,txt);
+}
+function dlFallback(n,txt){
+  var b=new Blob([txt],{type:'text/csv'}),u=URL.createObjectURL(b),a=document.createElement('a');
+  a.href=u;a.download=n;a.click();URL.revokeObjectURL(u);
+}
+
+/* ---- trajectory export, written straight from the replay history ---------
+   Same buffer the scrubber reads, so what you export is exactly what you can
+   replay, sampled at HIST_DT rather than at the 2 ms integration step. */
+function timeseriesCSV(){
+  var h=['t_s','cx_mm','cy_mm','heading_deg','head_angle_deg','state','dir','genotype',
+         'local_substrate','dist_patch_centre_mm','in_border','local_search',
+         'wall_habituation','wall_tier','cum_border_s','leave_evidence','leaving','mem_quality'];
+  for(var k=0;k<NP;k++) h.push('spine_x'+k+'_mm','spine_y'+k+'_mm');
+  h=h.concat(SEG.map(function(x){return 'contract_'+x;}))
+     .concat(PTL.map(function(x){return 'contact_'+x.replace('/','_');}))
+     .concat(BL.map(function(x){return 'bend_'+x.replace('/','_')+'_deg';}));
+  var out=[h.join(',')], H=HIST, i, k2;
+  for(i=0;i<hCount;i++){
+    var o=FW*histAt(i), cx=H[o+60], cy=H[o+61];
+    var np=nearestPatch(cx,cy);
+    var hx=H[o+3]-H[o+7], hy=H[o+4]-H[o+8];
+    var tx=H[o+9]-H[o+3+2*N], ty=H[o+10]-H[o+4+2*N];
+    var psiF=Math.atan2(ty,tx), ha=wrapA(Math.atan2(hy,hx)-psiF);
+    var r=[H[o].toFixed(3),cx.toFixed(4),cy.toFixed(4),(psiF*R2D).toFixed(2),
+           (ha*R2D).toFixed(2),SNAME[H[o+1]],H[o+70].toFixed(0),geno,
+           LNAME[H[o+2]],np?np.d.toFixed(3):'',
+           (cx<P.bw||cx>WW-P.bw||cy<P.bw||cy>WH-P.bw)?1:0,
+           H[o+74].toFixed(0),H[o+72].toFixed(4),H[o+73].toFixed(0),H[o+71].toFixed(2),
+           H[o+75].toFixed(4),H[o+76].toFixed(0),H[o+79].toFixed(4)];
+    for(k2=0;k2<NP;k2++) r.push(H[o+3+2*k2].toFixed(4),H[o+4+2*k2].toFixed(4));
+    for(k2=0;k2<N;k2++)  r.push(H[o+27+k2].toFixed(4));
+    for(k2=0;k2<NP;k2++) r.push(H[o+38+k2].toFixed(4));
+    for(k2=1;k2<N;k2++)  r.push((H[o+49+k2]*R2D).toFixed(3));
+    out.push(r.join(','));
+  }
+  return out.join('\n');
+}
+document.getElementById('csv').onclick=function(){
+  if(!hCount) return;
+  dl(baseName()+'_trajectory.csv', timeseriesCSV());
+};
+document.getElementById('visits').onclick=function(){
+  dl(baseName()+'_visits.csv',
+     't_enter_s,residence_s,patch_substrate,patch_quality,prev_quality,mem_weight,exit_type,decision_latency_s\n'+
+     visitLog.map(function(r){return r.join(',');}).join('\n'));
+};
+/* The figure writer lives in the batch script, which loads after this one, so
+   it is looked up at click time rather than captured here. */
+document.getElementById('figpdf').onclick=function(ev){
+  if(!hCount) return;
+  var FIG=(typeof window!=='undefined') && window.__LARVA_FIG;
+  if(!FIG) return;
+  var kind=(ev && ev.shiftKey)?'svg':'pdf';
+  /* one pseudo-run in the shape the figure builder expects, read straight out
+     of the replay history - the same buffer the scrubber shows, so the figure
+     is exactly what is on screen */
+  var H=HIST, track=[];
+  for(var i=0;i<hCount;i++){
+    var o=FW*histAt(i);
+    track.push({ t_s:+H[o].toFixed(2), x_mm:+H[o+60].toFixed(3), y_mm:+H[o+61].toFixed(3),
+                 local:LNAME[H[o+2]]||'agar' });
+  }
+  var label=(mode==='homog') ? (geno+' on uniform '+subs)
+    : (geno+' · '+patches().length+' '+(mixed?subs+'/'+altSub():subs)+' patches');
+  var run={ ok:true, run_id:'live', condition:label,
+            colour:'rgba(127,119,221,1)',
+            arena:{ W:WW, H:WH, mode:mode, subs:subs,
+                    patches:patches().map(function(q){ return [q[0],q[1],q[2],q[3]]; }) },
+            track:track };
+  var txt = kind==='pdf' ? FIG.pdf([run],120) : FIG.svg([run],120);
+  if(txt) FIG.save(baseName()+'_figure.'+kind, txt,
+                   kind==='pdf'?'application/pdf':'image/svg+xml');
+};
+
+document.getElementById('turns').onclick=function(){
+  dl(baseName()+'_turns.csv','t_s,turn_angle_deg,n_sweeps,local_substrate\n'+
+     turnLog.map(function(r){return r.join(',');}).join('\n'));
+};
+
+
+/* ---- CSV import -----------------------------------------------------------
+   Reads this sandbox's own trajectory export, and tolerates foreign spine
+   tracking (FIM-Track and similar) by matching common column spellings.
+   Anything with a time column and a set of midline x/y pairs can be loaded;
+   the spine is resampled by arc length onto this model's 12 points, and
+   segment contraction and intersegmental bend are recomputed from the
+   geometry, so both kymographs work on real data. Substrate contact is NOT
+   recoverable from tracking, so imported frames show every point planted and
+   the release band stays blank — that is missing data, not a measurement. */
+var imported=false, importNote='';
+
+function splitCSV(line){
+  var out=[], cur='', q=false;
+  for(var i=0;i<line.length;i++){
+    var ch=line[i];
+    if(q){ if(ch==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===','||ch==='\t'||ch===';') { out.push(cur); cur=''; }
+    else cur+=ch;
+  }
+  out.push(cur); return out;
+}
+/* which spine point, if any, a column header refers to */
+function spineCol(h){
+  var m;
+  if((m=h.match(/^(?:spine[_-]?)?(?:point[_-]?)?(x|y)[_-]?(\d+)(?:_mm)?$/i))) return {ax:m[1].toLowerCase(),i:+m[2]};
+  if((m=h.match(/^(?:spine|spinepoint|point|p)[_-]?(\d+)[_-]?(x|y)(?:_mm)?$/i)))  return {ax:m[2].toLowerCase(),i:+m[1]};
+  return null;
+}
+function pct(a,q){ var b=a.slice().sort(function(x,y){return x-y;}); return b[Math.min(b.length-1,Math.max(0,Math.floor(q*b.length)))]; }
+
+function resampleSpine(pts){
+  var cum=[0], i;
+  for(i=1;i<pts.length;i++) cum.push(cum[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));
+  var L=cum[cum.length-1], out=[];
+  if(!(L>0)) { for(i=0;i<NP;i++) out.push([pts[0][0],pts[0][1]]); return out; }
+  for(i=0;i<NP;i++){
+    var d=L*i/(NP-1), k=1;
+    while(k<cum.length-1&&cum[k]<d) k++;
+    var f=(d-cum[k-1])/Math.max(1e-9,cum[k]-cum[k-1]);
+    out.push([pts[k-1][0]+f*(pts[k][0]-pts[k-1][0]), pts[k-1][1]+f*(pts[k][1]-pts[k-1][1])]);
+  }
+  return out;
+}
+
+function importCSV(text,label){
+  var lines=text.split(/\r?\n/).filter(function(l){return l.trim().length;});
+  if(lines.length<2) throw new Error('file has no data rows');
+  var head=splitCSV(lines[0]).map(function(h){return h.trim();});
+  var lower=head.map(function(h){return h.toLowerCase();});
+  var ti=-1, fi=-1, k;
+  for(k=0;k<lower.length;k++){
+    if(ti<0&&/^(t|t_s|time|time_s|times|sec|secs|seconds|timestamp)$/.test(lower[k])) ti=k;
+    if(fi<0&&/^(frame|frames|frame_no|framenumber|index)$/.test(lower[k])) fi=k;
+  }
+  var sx={}, sy={};
+  for(k=0;k<head.length;k++){
+    var sc=spineCol(head[k]);
+    if(sc){ (sc.ax==='x'?sx:sy)[sc.i]=k; }
+  }
+  var idxs=Object.keys(sx).map(Number).filter(function(i){return sy[i]!==undefined;}).sort(function(a,b){return a-b;});
+  var cxi=lower.indexOf('cx_mm'), cyi=lower.indexOf('cy_mm');
+  if(cxi<0) cxi=lower.indexOf('x'); if(cyi<0) cyi=lower.indexOf('y');
+  if(idxs.length<3 && (cxi<0||cyi<0)) throw new Error('no spine x/y columns and no centroid columns found');
+  var sti=lower.indexOf('state'), loi=lower.indexOf('local_substrate');
+
+  var rows=[], i;
+  for(i=1;i<lines.length;i++){
+    var c=splitCSV(lines[i]); if(c.length<head.length-2) continue;
+    var tv = ti>=0 ? parseFloat(c[ti]) : (fi>=0 ? parseFloat(c[fi])/30 : (i-1)*HIST_DT);
+    if(!isFinite(tv)) continue;
+    var pts=null;
+    if(idxs.length>=3){
+      pts=[];
+      for(k=0;k<idxs.length;k++){
+        var X=parseFloat(c[sx[idxs[k]]]), Y=parseFloat(c[sy[idxs[k]]]);
+        if(isFinite(X)&&isFinite(Y)) pts.push([X,Y]);
+      }
+      if(pts.length<3) pts=null;
+    }
+    var cen = (cxi>=0&&cyi>=0)?[parseFloat(c[cxi]),parseFloat(c[cyi])]:null;
+    if(!pts&&!(cen&&isFinite(cen[0]))) continue;
+    rows.push({t:tv, pts:pts, cen:cen,
+      st:(sti>=0?(SCODE[c[sti]]!==undefined?SCODE[c[sti]]:0):0),
+      lo:(loi>=0?(LCODE[c[loi]]!==undefined?LCODE[c[loi]]:0):0)});
+  }
+  if(!rows.length) throw new Error('no usable rows');
+  if(rows.length>CAP){ var st=Math.ceil(rows.length/CAP), kept=[];
+    for(i=0;i<rows.length;i+=st) kept.push(rows[i]); rows=kept; }
+
+  /* units: if the tracked body length is already a few mm, take the file at
+     face value; otherwise assume pixels and normalise body length to 4 mm */
+  var scale=1, bodyLens=[];
+  for(i=0;i<rows.length;i++) if(rows[i].pts){
+    var L=0; for(k=1;k<rows[i].pts.length;k++)
+      L+=Math.hypot(rows[i].pts[k][0]-rows[i].pts[k-1][0],rows[i].pts[k][1]-rows[i].pts[k-1][1]);
+    bodyLens.push(L);
+  }
+  /* the 90th percentile is the relaxed body length; the median is pulled
+     short by whichever segments happen to be contracting */
+  var relBody=bodyLens.length?pct(bodyLens,0.9):0;
+  if(relBody>0 && (relBody<1||relBody>12)){ scale=BODY/relBody; }
+  var unitNote=(scale===1)?'units taken as mm'
+    :('scaled x'+scale.toFixed(4)+' (relaxed body '+relBody.toFixed(1)+' units -> 4 mm)');
+  if(ti<0&&fi>=0) unitNote+=' \u00b7 frame column, 30 fps assumed';
+
+  /* resample, then recover per-segment length and intersegmental bend */
+  var frames=[], minx=1e9,maxx=-1e9,miny=1e9,maxy=-1e9;
+  for(i=0;i<rows.length;i++){
+    var r=rows[i], sp=null;
+    if(r.pts){
+      sp=resampleSpine(r.pts);
+      for(k=0;k<NP;k++){ sp[k][0]*=scale; sp[k][1]*=scale; }
+    } else {
+      sp=[]; for(k=0;k<NP;k++) sp.push([r.cen[0]*scale,r.cen[1]*scale]);
+    }
+    for(k=0;k<NP;k++){
+      if(sp[k][0]<minx)minx=sp[k][0]; if(sp[k][0]>maxx)maxx=sp[k][0];
+      if(sp[k][1]<miny)miny=sp[k][1]; if(sp[k][1]>maxy)maxy=sp[k][1];
+    }
+    frames.push({t:r.t,sp:sp,st:r.st,lo:r.lo,hasBody:!!r.pts});
+  }
+  var segL=[]; for(k=0;k<N;k++) segL.push([]);
+  for(i=0;i<frames.length;i++) for(k=0;k<N;k++)
+    segL[k].push(Math.hypot(frames[i].sp[k][0]-frames[i].sp[k+1][0],
+                            frames[i].sp[k][1]-frames[i].sp[k+1][1]));
+  var rest=[], span=[];
+  for(k=0;k<N;k++){ var R0=pct(segL[k],0.9)||1; rest.push(R0);
+    var mx=0; for(i=0;i<frames.length;i++) mx=Math.max(mx,(R0-segL[k][i])/R0);
+    span.push(Math.max(0.05,mx)); }
+
+  /* lay the frames into the replay buffer */
+  hTotal=0; hCount=0; lastHist=1e9;
+  var H=HIST, path=0, t0=frames[0].t;
+  for(i=0;i<frames.length;i++){
+    var f=frames[i], o=FW*(i%CAP);
+    H[o]=f.t-t0; H[o+1]=f.st; H[o+2]=f.lo;
+    for(k=0;k<NP;k++){ H[o+3+2*k]=f.sp[k][0]; H[o+4+2*k]=f.sp[k][1]; }
+    for(k=0;k<N;k++){
+      var c0=f.hasBody?((rest[k]-segL[k][i])/rest[k])/span[k]:0;
+      H[o+27+k]=Math.max(0,Math.min(1,c0));
+    }
+    for(k=0;k<NP;k++) H[o+38+k]=1;          /* contact unknown: shown planted */
+    H[o+71]=0; H[o+72]=1; H[o+73]=3; H[o+74]=0;
+    H[o+75]=0; H[o+76]=0; H[o+77]=0; H[o+78]=0; H[o+79]=0; H[o+80]=0; H[o+81]=0;
+    for(k=1;k<N;k++){
+      var a1=Math.atan2(f.sp[k-1][1]-f.sp[k][1], f.sp[k-1][0]-f.sp[k][0]);
+      var a2=Math.atan2(f.sp[k][1]-f.sp[k+1][1], f.sp[k][0]-f.sp[k+1][0]);
+      H[o+49+k]=f.hasBody?wrapA(a1-a2):0;
+    }
+    var cx=0,cy=0; for(k=0;k<NP;k++){cx+=f.sp[k][0];cy+=f.sp[k][1];}
+    cx/=NP; cy/=NP;
+    if(i){ var po=FW*((i-1)%CAP); path+=Math.hypot(cx-H[po+60],cy-H[po+61]); }
+    H[o+60]=cx; H[o+61]=cy;
+    var dtv=i?(f.t-frames[i-1].t):1;
+    H[o+62]=(i&&dtv>0)?Math.hypot(cx-H[FW*((i-1)%CAP)+60],cy-H[FW*((i-1)%CAP)+61])/dtv:0;
+    H[o+63]=path; H[o+64]=0; H[o+65]=0; H[o+66]=0; H[o+67]=0; H[o+68]=0; H[o+69]=0; H[o+70]=1;
+    hTotal++; hCount=Math.min(hTotal,CAP);
+  }
+
+  /* fit the arena to the data so the whole track is visible */
+  var padm=3, wNeed=Math.max(12,(maxx-minx)+2*padm);
+  setP('aw',Math.round(Math.max(10,Math.min(220,wNeed))));
+  setArena();
+  var ox=minx-padm, oy=miny-((WH-(maxy-miny))/2);
+  for(i=0;i<hCount;i++){ var oo=FW*histAt(i);
+    for(k=0;k<NP;k++){ H[oo+3+2*k]-=ox; H[oo+4+2*k]-=oy; }
+    H[oo+60]-=ox; H[oo+61]-=oy; }
+
+  imported=true; running=false;
+  document.getElementById('pp').textContent='Play';
+  importNote=label+' · '+hCount+' frames · '+(frames[frames.length-1].t-t0).toFixed(1)+' s · '+unitNote+
+             (frames[0].hasBody?'':' · centroid only, no spine');
+  goScrub(hCount-1);
+  updateScrubRange();
+}
+
+document.getElementById('imp').onclick=function(){ document.getElementById('impfile').click(); };
+document.getElementById('impfile').addEventListener('change',function(e){
+  var f=e.target.files&&e.target.files[0]; if(!f) return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    try{ importCSV(String(rd.result), f.name); }
+    catch(err){ importNote='import failed: '+err.message; drawArena(); }
+  };
+  rd.readAsText(f);
+  e.target.value='';
+});
+
+/* Extension point for headless drivers. Does nothing in a browser, where the
+   hook is undefined; replaces regex injection into this closure, which broke
+   silently whenever the end of the file was edited. */
+if(typeof globalThis!=='undefined' && typeof globalThis.__LARVA_HOOK==='function'){
+  globalThis.__LARVA_HOOK({
+    P:P, setP:setP,
+    get t(){return t;}, get nWaves(){return nWaves;}, get state(){return state;},
+    get hCount(){return hCount;}, get FW(){return FW;}, get HIST(){return HIST;},
+    histAt:histAt, centroid:centroid, heading:heading,
+    timeseriesCSV:timeseriesCSV,
+    get visitLog(){return visitLog;}, get turnLog(){return turnLog;},
+    get timeIn(){return timeIn;}, get timeBorder(){return timeBorder;},
+    get patchVisits(){return patchVisits;}, get nTurns(){return nTurns;},
+    get sumTurn(){return sumTurn;}, get pathLen(){return pathLen;},
+    get strideMM(){return strideMM;}, get speedAvg(){return speedAvg;},
+    get nDecide(){return nDecide;}, get nWander(){return nWander;},
+    get habit(){return habit;}, get wallTier(){return wallTier;},
+    get curLocal(){return curLocal;},
+    get WW(){return WW;}, get WH(){return WH;}, get mode(){return mode;},
+    get subs(){return subs;}, patches:patches, SUBCOL:SUBCOL,
+    get resSum(){return resSum;}, get resN(){return resN;},
+    importCSV:importCSV, reset:reset
+  });
+}
+
+bendProfile(); setArena(); syncSizeMenu(); reset();
+for(var _k=0;_k<NP;_k++){ dWorld[_k][0]=world[_k][0]; dWorld[_k][1]=world[_k][1]; }
+dLocal=curLocal; histPush(); syncDisplay(); updateScrubRange();
+kb.fillStyle=PB(); kb.fillRect(0,0,KB.width,KB.height);
+jb.fillStyle=PB(); jb.fillRect(0,0,JB.width,JB.height);
+requestAnimationFrame(loop);
+})();
+</script>
+
+<script id="batch">
+/* ===========================================================================
+   Batch runner.
+
+   The model is the <script id="model"> block above, read back as text and
+   instantiated against a stub DOM with its globals shadowed. One model, three
+   hosts: this page (real DOM), Node (sim.js), and a Web Worker (the glue at
+   the bottom of this file). Nothing is reimplemented, so there is no second
+   copy to drift out of sync.
+
+   Runs are driven by SIMULATED time, like the Node harness - the sim-speed
+   slider only sets how many substeps happen between redraws and is
+   bit-identical across its range.
+   =========================================================================== */
+window.__LARVA_BATCH = (function(){
+'use strict';
+
+var MODEL = document.getElementById('model').textContent;
+
+/* The value attribute as written in the markup, unchanged by whatever the
+   person has since dragged. Matching Node exactly matters: a batch run and a
+   `node sim.js` run of the same config have to agree. */
+function markupDefaults(){
+  var d={}, els=document.querySelectorAll('input[type=range]');
+  for(var i=0;i<els.length;i++) d[els[i].id]=els[i].defaultValue;
+  return d;
+}
+/* what the sliders are set to right now, for "sweep from current settings" */
+function liveValues(){
+  var d={}, els=document.querySelectorAll('input[type=range]');
+  for(var i=0;i<els.length;i++) d[els[i].id]=els[i].value;
+  return d;
+}
+
+/* ---------- a DOM with nothing on screen --------------------------------- */
+function stubDom(defaults){
+  var noop=function(){}, els={};
+  function ctx(){
+    var cache={};
+    return new Proxy({},{
+      get:function(_,k){
+        if(k==='canvas') return {width:800,height:400};
+        if(k==='measureText') return function(){return {width:10};};
+        return cache[k]||(cache[k]=noop);
+      },
+      set:function(){return true;}
+    });
+  }
+  function rect(){ return {width:800,height:400,left:0,top:0,right:800,bottom:400}; }
+  function makeEl(id){
+    return { id:id, value:(defaults&&defaults[id]!==undefined?defaults[id]:'0'),
+      textContent:'', innerHTML:'', className:'', style:{}, checked:false,
+      options:[], selectedIndex:-1, _h:{},
+      addEventListener:function(k,f){ this._h[k]=f; },
+      removeEventListener:noop,
+      dispatchEvent:function(ev){ var f=this._h[ev.type]; if(f) f.call(this,ev); return true; },
+      classList:{toggle:noop,add:noop,remove:noop,contains:function(){return false;}},
+      onclick:null, oninput:null,
+      getElementsByClassName:function(){return [];},
+      querySelectorAll:function(){return [];}, querySelector:function(){return null;},
+      getAttribute:function(){return null;}, setAttribute:noop,
+      getContext:ctx, getBoundingClientRect:rect,
+      appendChild:noop, removeChild:noop, insertBefore:noop, remove:noop,
+      click:noop, preventDefault:noop, focus:noop, blur:noop };
+  }
+  var doc={
+    getElementById:function(id){ return els[id]||(els[id]=makeEl(id)); },
+    createElement:function(tag){ return tag==='canvas'
+      ? {width:800,height:400,getContext:ctx,getBoundingClientRect:rect}
+      : makeEl('tmp'); },
+    createTextNode:function(){ return {}; },
+    documentElement:{style:{},clientWidth:1200,clientHeight:800},
+    body:{appendChild:noop,removeChild:noop,style:{}},
+    querySelectorAll:function(){return [];}, querySelector:function(){return null;},
+    addEventListener:noop, removeEventListener:noop
+  };
+  return {document:doc, els:els};
+}
+
+/* ---------- one run, as a stepper ---------------------------------------
+   stepFor(budgetMs) advances the simulation and returns true when the run is
+   finished. A worker calls it with no budget and blocks; the main-thread
+   fallback calls it with ~12 ms and yields, so the page stays responsive. */
+function makeRun(opt){
+  opt = opt || {};
+  var duration = +opt.duration || 900;
+  var stepH    = +opt.step || 0.002;
+  var trackHz  = +opt.trackHz || 1;
+  var keepTrack= opt.track !== false;
+
+  var dom = stubDom(opt.defaults || {});
+  var hook=null, rafCb=null, simClock=0;
+  var G = { __LARVA_H:stepH, __LARVA_NODRAW:true,
+            __LARVA_HOOK:function(api){ hook=api; } };
+  var win = { devicePixelRatio:1, addEventListener:function(){},
+              removeEventListener:function(){}, innerWidth:1200, innerHeight:800,
+              matchMedia:function(){ return {matches:false,addListener:function(){},
+                                             addEventListener:function(){}}; } };
+  function Ev(type){ this.type=type; }
+
+  /* every global the model touches is a parameter here, so the real page's
+     document and window are invisible to the instance */
+  var fn = new Function('globalThis','window','document','performance',
+    'requestAnimationFrame','cancelAnimationFrame','getComputedStyle',
+    'Blob','URL','FileReader','Event','alert','console','self','localStorage',
+    MODEL);
+  fn(G, win, dom.document,
+     { now:function(){ return simClock*1000; } },
+     function(cb){ rafCb=cb; }, function(){},
+     function(){ return {getPropertyValue:function(){return '#fff';}}; },
+     function(){}, { createObjectURL:function(){return '';}, revokeObjectURL:function(){} },
+     function(){}, Ev, function(){},
+     { log:function(){}, warn:function(){}, error:function(){} },
+     G, { getItem:function(){return null;}, setItem:function(){} });
+
+  if(!hook) throw new Error('model did not expose __LARVA_HOOK');
+
+  /* presets first - they rewrite several sliders at once - then explicit
+     params, so a param the caller names always wins */
+  var btns = opt.buttons || [];
+  for(var b=0;b<btns.length;b++){
+    var be = dom.document.getElementById(btns[b]);
+    if(typeof be.onclick==='function') be.onclick.call(be);
+  }
+  /* One frame callback advances dt*spd of simulated time, so the sim-speed
+     slider sets the finest possible track resolution. Results are bit-identical
+     across its range (verified against the Node harness), so it is free to
+     choose it from the requested rate rather than leaving it at 20 and
+     silently capping the track at 1 Hz. */
+  var spdFor = Math.max(1, Math.min(20, Math.round(1/(0.05*trackHz))));
+  var params = Object.assign({ spd:(keepTrack?spdFor:20) }, opt.params || {});
+  if(opt.seed!==undefined) params.seed = opt.seed;
+  for(var k in params){
+    var e = dom.document.getElementById(k);
+    e.value = String(params[k]);
+    e.dispatchEvent(new Ev('input'));
+  }
+  hook.reset();   /* a seed only takes effect on a restart */
+
+  var DT=0.05, track=[], nextT=0, finished=false, result=null;
+  var now = (typeof performance!=='undefined' && performance.now)
+    ? function(){ return performance.now(); } : function(){ return Date.now(); };
+
+  /* The track is sampled AS THE RUN GOES, not read out of the model's history
+     buffer afterwards. That buffer is a 3000 s ring, so reading it back
+     silently truncates any run longer than 50 minutes to its last 50. */
+  var sampleN = 0;
+  function sample(){
+    var c = hook.centroid();
+    track.push({ t_s:+hook.t.toFixed(2), x_mm:+c[0].toFixed(3), y_mm:+c[1].toFixed(3),
+                 state:hook.state, local:hook.curLocal });
+    /* next boundary from a counter, not from the current time: adding the
+       interval to a float that is a hair under the boundary loses a sample
+       every few steps and the track quietly comes out short */
+    nextT = (++sampleN)/trackHz;
+  }
+
+  function finish(){
+    finished = true;
+    var t = hook.t;
+    result = {
+      ok:true,
+      duration_s:duration, step_s:stepH, seed:opt.seed,
+      params:Object.assign({}, hook.P),
+      buttons:(opt.buttons||[]).join('|'),
+      summary:{
+        sim_time_s:+t.toFixed(1),
+        path_mm:+hook.pathLen.toFixed(2),
+        speed_mm_s: t>0 ? +(hook.pathLen/t).toFixed(4) : 0,
+        stride_mm:+hook.strideMM.toFixed(4),
+        waves:hook.nWaves,
+        turns:hook.nTurns,
+        turns_per_min: t>0 ? +(hook.nTurns/(t/60)).toFixed(3) : 0,
+        mean_abs_turn_deg: hook.nTurns ? +(hook.sumTurn/hook.nTurns).toFixed(2) : null,
+        border_frac: t>0 ? +(hook.timeBorder/t).toFixed(4) : 0,
+        in_patch_frac: t>0 ? +(hook.timeIn/t).toFixed(4) : 0,
+        patch_visits:hook.patchVisits,
+        mean_residence_s: hook.resN ? +(hook.resSum/hook.resN).toFixed(2) : null,
+        n_decision_exits:hook.nDecide,
+        n_wander_exits:hook.nWander,
+        habituation_end:+hook.habit.toFixed(4),
+        wall_tier_end:hook.wallTier
+      },
+      visits: hook.visitLog.map(function(r){
+        return { t_enter_s:+r[0], residence_s:+r[1], substrate:r[2], quality:+r[3],
+                 prev_quality:(r[4]===''?null:+r[4]), mem_weight:+r[5], exit_type:r[6],
+                 decision_latency_s:(r[7]===''||r[7]===undefined?null:+r[7]) };
+      }),
+      turns: hook.turnLog.map(function(r){
+        return { t_s:+r[0], turn_angle_deg:+r[1], n_sweeps:+r[2], local:r[3] };
+      }),
+      /* the arena the run actually happened in, taken from the model rather
+         than recomputed here: patch geometry is the model's to own, and a
+         second copy in the UI would be a second thing to get wrong */
+      arena: (function(){
+        var ps = hook.patches ? hook.patches() : [];
+        return { W:hook.WW, H:hook.WH, mode:hook.mode, subs:hook.subs,
+                 patches: ps.map(function(q){ return [q[0],q[1],q[2],q[3]]; }) };
+      })(),
+      track: keepTrack ? track : null
+    };
+    hook = null; rafCb = null;    /* let the 20 MB history buffer go */
+  }
+
+  return {
+    get done(){ return finished; },
+    get result(){ return result; },
+    get progress(){ return finished ? 1 : Math.min(1, (hook?hook.t:0)/duration); },
+    stepFor:function(budgetMs){
+      if(finished) return true;
+      var t0=now(), guard=0;
+      while(hook.t < duration){
+        simClock += DT;
+        var cb=rafCb; rafCb=null;
+        if(!cb) break;                       /* model stopped asking to run */
+        cb(simClock*1000);
+        if(keepTrack && hook.t >= nextT) sample();
+        if(budgetMs && (++guard & 15)===0 && (now()-t0) > budgetMs) return false;
+      }
+      finish();
+      return true;
+    }
+  };
+}
+
+/* ---------- workers, where they exist ------------------------------------
+   A worker gets the model source and the two functions above as text, so
+   there is still only one implementation. Workers are the whole reason a
+   sweep is minutes rather than an hour, but a page opened as a file:// URL
+   cannot always start one - Chrome and Safari treat that as an opaque origin
+   and refuse the blob - so availability is PROBED rather than assumed, and
+   the answer decides which path runs. */
+function workerSource(){
+  return 'var MODEL=' + JSON.stringify(MODEL) + ';\n' +
+    stubDom.toString() + '\n' + makeRun.toString() + '\n' +
+    'self.onmessage=function(e){\n' +
+    '  var job=e.data;\n' +
+    '  if(job&&job.ping){ self.postMessage({pong:1}); return; }\n' +
+    '  try{ var r=makeRun(job); r.stepFor(0);\n' +
+    '       self.postMessage({id:job.id, result:r.result}); }\n' +
+    '  catch(err){ self.postMessage({id:job.id, error:String(err&&err.message||err)}); }\n' +
+    '};\n';
+}
+
+var _wsUrl = null;
+function workerUrl(){
+  if(_wsUrl) return _wsUrl;
+  _wsUrl = URL.createObjectURL(new Blob([workerSource()], {type:'text/javascript'}));
+  return _wsUrl;
+}
+
+/* Resolves to a worker that has actually answered, or null. Construction can
+   succeed and the worker then die on load, so a constructed worker is not
+   evidence of anything until it has replied. */
+function probeWorker(){
+  return new Promise(function(resolve){
+    var w;
+    try { w = new Worker(workerUrl()); }
+    catch(e){ resolve(null); return; }
+    var settled=false;
+    var timer=setTimeout(function(){ if(!settled){ settled=true; try{w.terminate();}catch(e){} resolve(null); } }, 4000);
+    w.onmessage=function(){ if(!settled){ settled=true; clearTimeout(timer); resolve(w); } };
+    w.onerror=function(){ if(!settled){ settled=true; clearTimeout(timer); try{w.terminate();}catch(e){} resolve(null); } };
+    try { w.postMessage({ping:1}); }
+    catch(e){ if(!settled){ settled=true; clearTimeout(timer); resolve(null); } }
+  });
+}
+
+var _mode = null;      /* 'workers' | 'main' once decided */
+function concurrency(){
+  var n = (navigator && navigator.hardwareConcurrency) || 2;
+  return Math.max(1, Math.min(n - 1 || 1, 12));   /* leave one core for the UI */
+}
+
+/* ---------- the batch ----------------------------------------------------
+   jobs: [{id, condition, seed, duration, step, params, buttons, track, trackHz}]
+   cb:   { onRun(result, job), onProgress(done,total,mode), onDone(results) } */
+function runBatch(jobs, cb){
+  cb = cb || {};
+  var out = [], done = 0, cancelled = false;
+  var total = jobs.length;
+  var queue = jobs.slice();
+
+  function finishedOne(job, res, err){
+    done++;
+    var row = err ? { ok:false, error:err, run_id:job.id, condition:job.condition, seed:job.seed }
+                  : Object.assign({ run_id:job.id, condition:job.condition }, res);
+    /* Did the values we asked for survive? Some parameters are recomputed by
+       the model from the substrate on every frame, and a few are clamped, so
+       a requested value can silently never take effect - which shows up as
+       two conditions producing byte-identical results. Checking the model's
+       own final parameters catches every such case, including ones nobody
+       has thought of, which a hardcoded list of known-derived parameters
+       would not. */
+    if(!err && job.params && res && res.params){
+      var ignored=[];
+      Object.keys(job.params).forEach(function(k){
+        var want=+job.params[k], got=+res.params[k];
+        if(Number.isFinite(want) && Number.isFinite(got) && Math.abs(want-got)>1e-9)
+          ignored.push(k+' asked '+want+', model used '+got);
+      });
+      if(ignored.length) row.param_ignored = ignored.join('; ');
+    }
+    out.push(row);
+    if(cb.onRun) cb.onRun(row, job);
+    if(cb.onProgress) cb.onProgress(done, total, _mode);
+  }
+
+  function runWithWorkers(first){
+    var pool = [first], want = Math.min(concurrency(), queue.length);
+    for(var i=1;i<want;i++){
+      try { pool.push(new Worker(workerUrl())); } catch(e){ break; }
+    }
+    var live = pool.length;
+    return new Promise(function(resolve){
+      function feed(w){
+        if(cancelled || !queue.length){
+          live--; try{ w.terminate(); }catch(e){}
+          if(live===0) resolve(out);
+          return;
+        }
+        var job = queue.shift();
+        w.onmessage = function(e){
+          var d = e.data || {};
+          if(d.pong) return;
+          finishedOne(job, d.result, d.error);
+          feed(w);
+        };
+        w.onerror = function(ev){
+          finishedOne(job, null, (ev && ev.message) || 'worker error');
+          feed(w);
+        };
+        w.postMessage(job);
+      }
+      pool.forEach(feed);
+    });
+  }
+
+  /* No workers: run on this thread in slices, yielding so the page stays
+     usable. Slower by the core count, but it works from a double-clicked
+     file, which is how most people will first open this. */
+  function runOnMainThread(){
+    return new Promise(function(resolve){
+      var cur = null, curJob = null;
+      function tick(){
+        if(cancelled){ resolve(out); return; }
+        if(!cur){
+          if(!queue.length){ resolve(out); return; }
+          curJob = queue.shift();
+          try { cur = makeRun(curJob); }
+          catch(e){ finishedOne(curJob, null, String(e && e.message || e)); cur=null;
+                    setTimeout(tick,0); return; }
+        }
+        var finished;
+        try { finished = cur.stepFor(12); }
+        catch(e){ finishedOne(curJob, null, String(e && e.message || e));
+                  cur=null; setTimeout(tick,0); return; }
+        if(finished){ finishedOne(curJob, cur.result, null); cur=null; }
+        setTimeout(tick, 0);
+      }
+      tick();
+    });
+  }
+
+  var started = probeWorker().then(function(w){
+    _mode = w ? 'workers' : 'main';
+    if(cb.onProgress) cb.onProgress(0, total, _mode);
+    return w ? runWithWorkers(w) : runOnMainThread();
+  }).then(function(res){
+    if(cb.onDone) cb.onDone(res);
+    return res;
+  });
+
+  return { promise:started, cancel:function(){ cancelled = true; },
+           get mode(){ return _mode; } };
+}
+
+/* ---------- provenance ---------------------------------------------------
+   A short fingerprint of the model source. Not a cryptographic hash - it only
+   has to answer "were these runs produced by the same model?", and
+   crypto.subtle is unavailable on file:// pages, which is where most people
+   will open this. sim.js computes the same value over the same text, so a
+   bundle made here and a sweep run in Node carry a comparable field. */
+function fingerprint(str){
+  var h1=0x811c9dc5, h2=0x01000193;
+  for(var i=0;i<str.length;i++){
+    var c=str.charCodeAt(i);
+    h1=(h1^c)>>>0; h1=Math.imul(h1,16777619)>>>0;
+    h2=(h2+c)>>>0; h2=Math.imul(h2,2246822519)>>>0;
+  }
+  return ('00000000'+h1.toString(16)).slice(-8)+('00000000'+h2.toString(16)).slice(-8);
+}
+/* over the model source AND the markup defaults: a changed default value
+   alters every result while leaving the code untouched, so a fingerprint
+   that ignored it would quietly call two different models the same. */
+var MODEL_FP = fingerprint(MODEL + '\n' + JSON.stringify(markupDefaults()));
+
+return { makeRun:makeRun, markupDefaults:markupDefaults, liveValues:liveValues,
+         runBatch:runBatch, probeWorker:probeWorker, concurrency:concurrency,
+         fingerprint:fingerprint, get modelFingerprint(){ return MODEL_FP; },
+         get mode(){ return _mode; }, get MODEL(){ return MODEL; } };
+})();
+
+/* ===========================================================================
+   Batch UI. Kept apart from the runner above: the runner is the part the
+   Node tooling has a counterpart for, this is only the page.
+   =========================================================================== */
+(function(){
+'use strict';
+var B = window.__LARVA_BATCH;
+var $ = function(id){ return document.getElementById(id); };
+
+var RESULTS = [];          /* every finished run, in arrival order */
+var PICKED  = {};          /* run_id -> true, for the overlay */
+var SORT    = { key:'run_id', dir:1 };
+var HANDLE  = null;        /* the in-flight batch, for Cancel */
+var LASTCFG = null;
+
+var COLS = [
+  ['run_id','run',null], ['condition','condition',null], ['seed','seed',0],
+  ['speed_mm_s','speed',3], ['stride_mm','stride',3], ['turns_per_min','turns/min',2],
+  ['mean_abs_turn_deg','|turn|',1], ['border_frac','border',3],
+  ['in_patch_frac','in patch',3], ['patch_visits','visits',0],
+  ['mean_residence_s','residence',1]
+];
+var PALETTE = ['#1d9e75','#7f77dd','#ba7517','#d85a30','#2e8bc0','#b5446e',
+               '#5a8f29','#8a6fd4'];
+
+/* ---------- the parameter pickers --------------------------------------- */
+function fillSelects(){
+  var els = document.querySelectorAll('input[type=range]');
+  var opts = '<option value="">(none)</option>';
+  for(var i=0;i<els.length;i++){
+    var id = els[i].id;
+    if(id==='spd' || id==='tr' || id==='zm' || id==='rspd' || id==='scrub') continue;
+    var row = els[i].closest('.row');
+    var lab = row ? row.querySelector('label span') : null;
+    /* .row.auto means the model recomputes this one from the genotype and the
+       local substrate on every frame, so a value set here is overwritten
+       before it can do anything. Varying one silently produces identical
+       conditions, which looks exactly like a broken simulation. */
+    var auto = row && row.classList.contains('auto');
+    opts += '<option value="'+id+'"'+(auto?' data-auto="1"':'')+'>'+
+      (lab?lab.textContent:id)+' ('+id+')'+(auto?'  \u2014 auto, cannot be set':'')+
+      '</option>';
+  }
+  $('b_p1').innerHTML = opts;
+  $('b_p2').innerHTML = opts;
+  $('b_p1').value = 'ocmp';
+  if($('b_p1').value!=='ocmp') $('b_p1').selectedIndex = 1;
+}
+
+function nums(str){
+  return String(str||'').split(/[,\s]+/).map(function(x){return x.trim();})
+    .filter(function(x){return x!=='';}).map(Number)
+    .filter(function(x){return Number.isFinite(x);});
+}
+
+/* which preset buttons are currently on, so a batch inherits the arena */
+function livePresets(){
+  var ids=['g_rov','g_sit','s_agar','s_suc','s_yeast','m_hom','m_p1','m_p2','m_p4',
+           'mix','w_rev','w_cast','h_wt','h_rut','h_dnc','h_cam'];
+  var on=[];
+  for(var i=0;i<ids.length;i++){
+    var e=document.getElementById(ids[i]);
+    if(e && e.classList.contains('on')) on.push(ids[i]);
+  }
+  return on;
+}
+
+/* ---------- plan --------------------------------------------------------- */
+function buildPlan(){
+  var p1=$('b_p1').value, p2=$('b_p2').value;
+  var v1=nums($('b_v1').value), v2=nums($('b_v2').value);
+  var seeds=Math.max(1,Math.min(200,+$('b_seeds').value||1));
+  var dur=Math.max(10,+$('b_dur').value||900);
+  var fromLive=$('b_live').checked;
+  var base = fromLive ? B.liveValues() : B.markupDefaults();
+  var buttons = fromLive ? livePresets() : [];
+
+  if(!p1 || !v1.length) return { jobs:[], why:'pick a parameter and at least one value' };
+  if(p2 && !v2.length)  return { jobs:[], why:'the second parameter has no values' };
+
+  var cells=[];
+  v1.forEach(function(a){
+    if(p2 && v2.length) v2.forEach(function(b){
+      var o={}; o[p1]=a; o[p2]=b;
+      cells.push({ name:p1+'='+a+' '+p2+'='+b, params:o });
+    });
+    else { var o={}; o[p1]=a; cells.push({ name:p1+'='+a, params:o }); }
+  });
+
+  var jobs=[];
+  cells.forEach(function(c){
+    for(var s=1;s<=seeds;s++){
+      jobs.push({
+        id:c.name.replace(/[^\w.=-]+/g,'_')+'_s'+s,
+        condition:c.name, seed:s, duration:dur, step:0.002,
+        params:Object.assign({}, c.params), buttons:buttons.slice(),
+        defaults:base, track:$('b_track').checked, trackHz:1
+      });
+    }
+  });
+  return { jobs:jobs, cells:cells.length, seeds:seeds, dur:dur,
+           base:base, buttons:buttons, p1:p1, p2:p2, v1:v1, v2:v2 };
+}
+
+function describePlan(){
+  var pl=buildPlan();
+  if(!pl.jobs.length){ $('b_plan').textContent = pl.why || '—'; return pl; }
+  var hours = pl.jobs.length * pl.dur / 3600;
+  var cores = B.concurrency();
+  var est = hours * 10 / cores;
+  $('b_plan').textContent = pl.jobs.length+' runs = '+pl.cells+' conditions x '+pl.seeds+
+    ' seeds, '+Math.round(pl.dur)+' s each  ~'+fmtDur(est);
+  return pl;
+}
+function fmtDur(sec){
+  if(sec<90) return Math.round(sec)+' s';
+  if(sec<5400) return (sec/60).toFixed(1)+' min';
+  return (sec/3600).toFixed(1)+' h';
+}
+
+/* ---------- table -------------------------------------------------------- */
+function condColour(cond){
+  var names = RESULTS.map(function(r){return r.condition;});
+  var uniq=[]; names.forEach(function(n){ if(uniq.indexOf(n)<0) uniq.push(n); });
+  return PALETTE[Math.max(0,uniq.indexOf(cond)) % PALETTE.length];
+}
+function cell(r,key,dp){
+  var v = (key in r) ? r[key] : (r.summary ? r.summary[key] : undefined);
+  if(v===null||v===undefined) return '&mdash;';
+  if(dp===null||typeof v!=='number') return String(v);
+  return v.toFixed(dp);
+}
+function drawTable(){
+  var head=$('b_head'), body=$('b_body');
+  head.innerHTML = COLS.map(function(c){
+    return '<th data-k="'+c[0]+'" class="'+(SORT.key===c[0]?'srt':'')+'">'+c[1]+
+      (SORT.key===c[0]?(SORT.dir>0?' ▲':' ▼'):'')+'</th>';
+  }).join('');
+  if(!RESULTS.length){
+    body.innerHTML='<tr><td class="empty" colspan="'+COLS.length+
+      '">No runs yet. Set a parameter and some values, then Run.</td></tr>';
+    return;
+  }
+  var rows=RESULTS.slice().sort(function(a,b){
+    var k=SORT.key;
+    var av=(k in a)?a[k]:(a.summary?a.summary[k]:null);
+    var bv=(k in b)?b[k]:(b.summary?b.summary[k]:null);
+    if(av===null||av===undefined) return 1;
+    if(bv===null||bv===undefined) return -1;
+    if(typeof av==='number'&&typeof bv==='number') return (av-bv)*SORT.dir;
+    return String(av).localeCompare(String(bv))*SORT.dir;
+  });
+  body.innerHTML = rows.map(function(r){
+    if(!r.ok) return '<tr><td colspan="'+COLS.length+'" class="warn">'+r.run_id+
+      ' failed: '+(r.error||'')+'</td></tr>';
+    return '<tr data-id="'+r.run_id+'" class="'+(PICKED[r.run_id]?'pick':'')+'">'+
+      COLS.map(function(c,i){
+        var inner=cell(r,c[0],c[2]);
+        if(i===0) inner='<span class="sw" style="background:'+condColour(r.condition)+'"></span>'+inner;
+        return '<td>'+inner+'</td>';
+      }).join('')+'</tr>';
+  }).join('');
+}
+
+/* ---------- the overlay canvas ------------------------------------------ */
+function drawOverlay(){
+  var cv=$('bover'); if(!cv) return;
+  var dpr=window.devicePixelRatio||1;
+  var w=cv.clientWidth, h=cv.clientHeight;
+  if(!w||!h) return;
+  cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
+  var g=cv.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,w,h);
+
+  var sel=RESULTS.filter(function(r){ return r.ok && PICKED[r.run_id] && r.track && r.track.length; });
+  if(!sel.length){
+    g.fillStyle=getComputedStyle(document.body).getPropertyValue('--tx2')||'#888';
+    g.font='11px -apple-system,sans-serif'; g.textAlign='center';
+    g.fillText('Tick runs in the table to draw their trajectories here.', w/2, h/2);
+    return;
+  }
+  /* the arena each run recorded for itself */
+  var W=0,H=0;
+  sel.forEach(function(r){
+    if(r.arena && r.arena.W){ W=Math.max(W,r.arena.W); H=Math.max(H,r.arena.H); }
+    r.track.forEach(function(p){ W=Math.max(W,p.x_mm); H=Math.max(H,p.y_mm); });
+  });
+  W=W||100; H=H||63;
+  var pad=8, sc=Math.min((w-2*pad)/W,(h-2*pad)/H);
+  var ox=(w-W*sc)/2, oy=(h-H*sc)/2;
+
+  /* Substrate underneath, from the first selected run that has geometry. If
+     the selection spans different arenas there is no single right backdrop,
+     so none is drawn and the panel says so rather than showing one arena's
+     patches under another arena's tracks. */
+  var geo=null, clash=false;
+  sel.forEach(function(r){
+    if(!r.arena) return;
+    var k=JSON.stringify([r.arena.mode,r.arena.subs,r.arena.W,r.arena.H,r.arena.patches]);
+    if(!geo){ geo={key:k,a:r.arena}; } else if(geo.key!==k) clash=true;
+  });
+  var SC=(sel[0]&&sel[0].subcol)||{
+    agar   :{fill:'rgba(55,138,221,0.13)', line:'rgba(24,95,165,0.45)'},
+    sucrose:{fill:'rgba(99,153,34,0.17)',  line:'rgba(59,109,17,0.5)'},
+    yeast  :{fill:'rgba(239,159,39,0.18)', line:'rgba(186,117,23,0.55)'}
+  };
+  if(geo && !clash){
+    var A=geo.a;
+    g.fillStyle=(A.mode==='homog'?(SC[A.subs]||SC.agar):SC.agar).fill;
+    g.fillRect(ox,oy,W*sc,H*sc);
+    (A.patches||[]).forEach(function(q){
+      var col=SC[q[3]]||SC.agar;
+      g.beginPath(); g.arc(ox+q[0]*sc, oy+q[1]*sc, q[2]*sc, 0, 6.283185);
+      g.fillStyle=col.fill; g.fill();
+      g.strokeStyle=col.line; g.lineWidth=1.5; g.stroke();
+    });
+  }
+  g.strokeStyle=getComputedStyle(document.body).getPropertyValue('--line')||'#ddd';
+  g.lineWidth=1; g.strokeRect(ox,oy,W*sc,H*sc);
+  /* seeds of one condition share a colour - the condition is the unit of
+     comparison - so they are separated by opacity instead, otherwise two
+     tracks of the same condition read as one */
+  var seen={};
+  sel.forEach(function(r){
+    var n = seen[r.condition] = (seen[r.condition]||0)+1;
+    g.strokeStyle=condColour(r.condition);
+    g.globalAlpha=Math.max(0.3, (sel.length>8?0.5:0.8) - (n-1)*0.12);
+    g.lineWidth=1; g.beginPath();
+    r.track.forEach(function(p,i){
+      var x=ox+p.x_mm*sc, y=oy+p.y_mm*sc;
+      if(i) g.lineTo(x,y); else g.moveTo(x,y);
+    });
+    g.stroke();
+    /* where the larva was on food, from the track's own substrate column -
+       this shows the patch structure without this panel having to know the
+       arena geometry, which only the model should own */
+    g.lineWidth=2.4; g.globalAlpha=Math.min(1,g.globalAlpha+0.15);
+    g.beginPath();
+    var open=false;
+    r.track.forEach(function(p,i){
+      var on = p.local && p.local!=='agar';
+      if(on){
+        var x=ox+p.x_mm*sc, y=oy+p.y_mm*sc;
+        if(open) g.lineTo(x,y); else { g.moveTo(x,y); open=true; }
+      } else open=false;
+    });
+    g.stroke();
+  });
+  g.globalAlpha=1;
+
+  /* legend: which colour is which condition */
+  var conds=[]; sel.forEach(function(r){ if(conds.indexOf(r.condition)<0) conds.push(r.condition); });
+  g.font='10px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+  g.textAlign='left'; g.textBaseline='middle';
+  var onFood = sel.some(function(r){
+    return r.track.some(function(p){ return p.local && p.local!=='agar'; }); });
+  var shown = conds.slice(0,8);
+  var lw = 0;
+  shown.forEach(function(c){ lw = Math.max(lw, g.measureText(c).width); });
+  if(onFood) lw = Math.max(lw, g.measureText('thick = on food').width);
+  var lh = shown.length*13 + (onFood?15:0) + 8;
+  /* a backing, or the legend becomes unreadable the moment a track runs under it */
+  g.fillStyle = getComputedStyle(document.body).getPropertyValue('--panel') || '#fff';
+  g.globalAlpha = 0.88;
+  g.fillRect(ox+4, oy+4, lw+26, lh);
+  g.globalAlpha = 1;
+  var ly=oy+15;
+  shown.forEach(function(c){
+    g.fillStyle=condColour(c); g.fillRect(ox+11,ly-3,7,7);
+    g.fillStyle=getComputedStyle(document.body).getPropertyValue('--tx')||'#222';
+    g.fillText(c, ox+23, ly);
+    ly+=13;
+  });
+  if(onFood){
+    g.fillStyle=getComputedStyle(document.body).getPropertyValue('--tx2')||'#777';
+    g.fillText('thick = on food', ox+11, ly+2);
+  }
+  if(clash){
+    g.fillStyle=getComputedStyle(document.body).getPropertyValue('--amber')||'#ba7517';
+    g.textAlign='right';
+    g.fillText('selection spans different arenas - no substrate drawn', ox+W*sc-8, oy+H*sc-8);
+    g.textAlign='left';
+  }
+}
+
+/* ---------- running ------------------------------------------------------ */
+function setRunning(on){
+  $('b_run').hidden=on; $('b_stop').hidden=!on;
+  ['b_p1','b_p2','b_v1','b_v2','b_seeds','b_dur','b_track','b_live']
+    .forEach(function(id){ $(id).disabled=on; });
+}
+function start(){
+  var pl=describePlan();
+  if(!pl.jobs.length){ $('b_stat').textContent=pl.why||'nothing to run'; return; }
+  LASTCFG={ vary1:pl.p1, values1:pl.v1, vary2:pl.p2||null, values2:pl.p2?pl.v2:null,
+            seeds:pl.seeds, duration_s:pl.dur, buttons:pl.buttons,
+            from_current_settings:$('b_live').checked, base:pl.base };
+  setRunning(true);
+  $('b_barf').style.width='0%';
+  var t0=performance.now();
+  HANDLE = B.runBatch(pl.jobs, {
+    onRun:function(row){ RESULTS.push(row); drawTable(); },
+    onProgress:function(done,total,mode){
+      $('b_barf').style.width=(100*done/total).toFixed(1)+'%';
+      var el=(performance.now()-t0)/1000;
+      var left=done?fmtDur(el/done*(total-done)):'…';
+      $('b_stat').textContent=done+'/'+total+
+        (mode==='main'?'  (one core: this browser would not start workers)'
+                      :'  ('+B.concurrency()+' cores)')+
+        (done?'  '+left+' left':'');
+    },
+    onDone:function(res){
+      setRunning(false); HANDLE=null;
+      $('b_stat').textContent=RESULTS.length+' runs done in '+
+        fmtDur((performance.now()-t0)/1000);
+      var ig={};
+      res.forEach(function(r){ if(r.param_ignored) ig[r.param_ignored]=1; });
+      var keys=Object.keys(ig);
+      if(keys.length){
+        $('b_note').textContent='the model overrode a value you set — '+keys[0]+
+          '. Those conditions are not actually different.';
+        $('b_note').classList.add('warn');
+      }
+      drawTable(); drawOverlay();
+    }
+  });
+}
+
+/* ---------- export ------------------------------------------------------- */
+function stamp(){
+  var d=new Date(), z=function(n){return (n<10?'0':'')+n;};
+  return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+'_'+z(d.getHours())+z(d.getMinutes());
+}
+function prefix(){
+  var f=document.getElementById('fname');
+  var v=f&&f.value?f.value.trim().replace(/[^\w.-]+/g,'_'):'';
+  return v || ('batch_'+stamp());
+}
+function save(name, text, mime){
+  var b=new Blob([text],{type:mime||'text/plain'});
+  var u=URL.createObjectURL(b), a=document.createElement('a');
+  a.href=u; a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(u); },0);
+}
+function esc(v){
+  if(v===null||v===undefined) return '';
+  var s=String(v);
+  return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+function toCsv(rows, fallback){
+  if(!rows.length) return (fallback||[]).join(',')+'\n';
+  var cols=[];
+  rows.forEach(function(r){ Object.keys(r).forEach(function(k){ if(cols.indexOf(k)<0) cols.push(k); }); });
+  return cols.join(',')+'\n'+rows.map(function(r){
+    return cols.map(function(c){ return esc(r[c]); }).join(',');
+  }).join('\n')+'\n';
+}
+/* the same long format sweep.js writes, so one reader handles both */
+function tables(){
+  var runs=[], visits=[], turns=[];
+  RESULTS.forEach(function(r){
+    if(!r.ok){ runs.push({run_id:r.run_id,condition:r.condition,seed:r.seed,ok:0,error:r.error}); return; }
+    var row={ run_id:r.run_id, condition:r.condition, seed:r.seed,
+              duration_s:r.duration_s, step_s:r.step_s, buttons:r.buttons };
+    Object.keys(r.summary).forEach(function(k){ row[k]=r.summary[k]; });
+    Object.keys(r.params).forEach(function(k){ row['p_'+k]=r.params[k]; });
+    runs.push(row);
+    r.visits.forEach(function(v){ visits.push(Object.assign({run_id:r.run_id,condition:r.condition},v)); });
+    r.turns.forEach(function(t){ turns.push(Object.assign({run_id:r.run_id,condition:r.condition},t)); });
+  });
+  return { runs:runs, visits:visits, turns:turns };
+}
+function exportBundle(){
+  if(!RESULTS.length){ $('b_note').textContent='nothing to export yet'; return; }
+  var t=tables(), tracks={};
+  RESULTS.forEach(function(r){ if(r.ok && r.track) tracks[r.run_id]=r.track; });
+  var bundle={
+    format:'larval-sandbox-bundle/1',
+    created:new Date().toISOString(),
+    model_fingerprint:B.modelFingerprint,
+    source:'browser batch',
+    config:LASTCFG,
+    runs:t.runs, visits:t.visits, turns:t.turns, tracks:tracks
+  };
+  save(prefix()+'_bundle.json', JSON.stringify(bundle), 'application/json');
+  $('b_note').textContent='bundle saved — '+t.runs.length+' runs, '+
+    Object.keys(tracks).length+' tracks';
+}
+function exportCsvs(){
+  if(!RESULTS.length){ $('b_note').textContent='nothing to export yet'; return; }
+  var t=tables(), pre=prefix();
+  save(pre+'_runs.csv', toCsv(t.runs), 'text/csv');
+  setTimeout(function(){ save(pre+'_visits.csv', toCsv(t.visits,
+    ['run_id','condition','t_enter_s','residence_s','substrate','quality','prev_quality',
+     'mem_weight','exit_type','decision_latency_s']), 'text/csv'); }, 120);
+  setTimeout(function(){ save(pre+'_turns.csv', toCsv(t.turns,
+    ['run_id','condition','t_s','turn_angle_deg','n_sweeps','local']), 'text/csv'); }, 240);
+  $('b_note').textContent='three CSVs saved';
+}
+
+/* ---------- figure export ------------------------------------------------
+   Vector, not a screenshot: the trajectories go out as real paths, so the
+   figure scales and stays editable in Illustrator or Inkscape.
+
+   The PDF is written by hand rather than with a library, because the page has
+   to stay one self-contained file with no dependencies. It only needs what a
+   line figure uses - paths, filled circles, Helvetica text - so the whole
+   writer is about a hundred lines and embeds no fonts (Helvetica is one of
+   the 14 every reader has).
+
+   Transparency is handled by compositing against white here rather than with
+   a PDF ExtGState: the figure background is white, so the result is identical
+   and the file stays simple. */
+var MM = 72/25.4;                 /* PDF points per mm */
+
+function rgbaParts(c){
+  var m=/rgba?\(([^)]+)\)/.exec(c||'');
+  if(m){
+    var v=m[1].split(',').map(function(x){return parseFloat(x);});
+    return { r:v[0]/255, g:v[1]/255, b:v[2]/255, a:(v.length>3?v[3]:1) };
+  }
+  m=/^#([0-9a-f]{6})$/i.exec((c||'').trim());
+  if(m){ var n=parseInt(m[1],16);
+    return { r:((n>>16)&255)/255, g:((n>>8)&255)/255, b:(n&255)/255, a:1 }; }
+  return { r:0, g:0, b:0, a:1 };
+}
+/* flatten against white, so no alpha is needed in the file */
+function flat(c){
+  var p=rgbaParts(c);
+  return { r:p.a*p.r+(1-p.a), g:p.a*p.g+(1-p.a), b:p.a*p.b+(1-p.a) };
+}
+function n3(x){ return (Math.round(x*1000)/1000).toString(); }
+function ascii(str){ return String(str).replace(/[^\x20-\x7e]/g,'-'); }
+/* PDF string literals are delimited by parentheses, so a bracket or backslash
+   in any label - a condition name, an imported genotype - has to be escaped or
+   the file is malformed. `ascii` only strips non-printables; this does the
+   escaping, and every text run in the PDF writer goes through it. */
+function pstr(str){ return ascii(str).replace(/([\\()])/g,'\\$1'); }
+
+/* What goes in the figure, independent of the output format: one description
+   that both the PDF and the SVG writer render, so they cannot disagree. */
+function colourOf(r){ return r.colour || condColour(r.condition); }
+/* the legend asks by condition name, so find a run carrying it */
+function condColourIn(sel,cond){
+  for(var i=0;i<sel.length;i++) if(sel[i].condition===cond) return colourOf(sel[i]);
+  return condColour(cond);
+}
+/* How long the figure covers. Seconds are the primary unit; minutes are added
+   once they are the easier number to read. Brackets are safe in the PDF
+   because every text run there goes through `pstr`. */
+function mins(sec){ var m=sec/60; return m<10?m.toFixed(1):String(Math.round(m)); }
+function spanLabel(sp){
+  if(!sp) return null;
+  var lo=Math.round(sp.lo), hi=Math.round(sp.hi), t;
+  if(sp.same) t = lo<120 ? lo+' s' : lo+' s ('+mins(lo)+' min)';
+  else        t = hi<120 ? lo+'-'+hi+' s'
+                         : lo+'-'+hi+' s ('+mins(lo)+'-'+mins(hi)+' min)';
+  return (sp.n>1 ? sp.n+' runs, ' : '') + t;
+}
+
+function figureModel(widthMM, runs){
+  var sel=(runs || RESULTS.filter(function(r){ return r.ok && PICKED[r.run_id]; }))
+    .filter(function(r){ return r.ok!==false && r.track && r.track.length; });
+  if(!sel.length) return null;
+  var W=0,H=0;
+  sel.forEach(function(r){
+    if(r.arena && r.arena.W){ W=Math.max(W,r.arena.W); H=Math.max(H,r.arena.H); }
+    r.track.forEach(function(p){ W=Math.max(W,p.x_mm); H=Math.max(H,p.y_mm); });
+  });
+  W=W||100; H=H||63;
+  var geo=null, clash=false;
+  sel.forEach(function(r){
+    if(!r.arena) return;
+    var k=JSON.stringify([r.arena.mode,r.arena.subs,r.arena.W,r.arena.H,r.arena.patches]);
+    if(!geo) geo={key:k,a:r.arena}; else if(geo.key!==k) clash=true;
+  });
+  var SC={ agar:{fill:'rgba(55,138,221,0.13)',line:'rgba(24,95,165,0.45)'},
+           sucrose:{fill:'rgba(99,153,34,0.17)',line:'rgba(59,109,17,0.5)'},
+           yeast:{fill:'rgba(239,159,39,0.18)',line:'rgba(186,117,23,0.55)'} };
+  var k = widthMM / W;                      /* mm of paper per mm of arena */
+  /* a round scale bar about a fifth of the width */
+  var want=W/5, pow=Math.pow(10,Math.floor(Math.log10(want)));
+  var bar=[1,2,5,10].map(function(m){return m*pow;})
+    .reduce(function(a,b){ return Math.abs(b-want)<Math.abs(a-want)?b:a; });
+  var conds=[]; sel.forEach(function(r){ if(conds.indexOf(r.condition)<0) conds.push(r.condition); });
+  /* How long each drawn trace covers. Taken from the track itself rather than
+     from the run's requested duration, because the live page draws from a
+     capped history buffer - so the figure states what it SHOWS, which may be
+     less than the simulation ran. */
+  var spans=sel.map(function(r){
+    var tr=r.track;
+    if(!tr.length || tr[0].t_s===undefined) return null;
+    return tr[tr.length-1].t_s - tr[0].t_s;
+  }).filter(function(v){ return v!==null && isFinite(v) && v>0; });
+  var span=null;
+  if(spans.length){
+    var lo=Math.min.apply(null,spans), hi=Math.max.apply(null,spans);
+    span={ lo:lo, hi:hi, n:sel.length, same:(hi-lo)<=Math.max(1,0.02*hi) };
+  }
+  return { sel:sel, W:W, H:H, k:k, bar:bar, conds:conds, span:span,
+           arena:(geo&&!clash)?geo.a:null, clash:clash, SC:SC,
+           /* only claim a thick-line key if a thick line is actually drawn:
+              a single stray on-food sample makes no visible segment */
+           onFood:sel.some(function(r){ return foodRuns(r.track).length>0; }) };
+}
+
+/* segments of a track where the larva was on food, as separate polylines */
+function foodRuns(track){
+  var out=[], cur=null;
+  track.forEach(function(p){
+    if(p.local && p.local!=='agar'){ if(!cur){ cur=[]; out.push(cur); } cur.push(p); }
+    else cur=null;
+  });
+  return out.filter(function(a){ return a.length>1; });
+}
+
+function buildPdf(widthMM, runs){
+  var F=figureModel(widthMM, runs);
+  if(!F) return null;
+  var pad=8, legendH=(F.conds.length*4.6)+(F.onFood?4.6:0)+4;
+  var pw=(F.W*F.k+2*pad)*MM;
+  var ph=(F.H*F.k+2*pad+10+legendH)*MM;
+  var ox=pad*MM, oyTop=(pad+legendH)*MM;      /* from the top, flipped below */
+  var X=function(x){ return ox + x*F.k*MM; };
+  var Y=function(y){ return ph - oyTop - y*F.k*MM; };
+  var R=function(r){ return r*F.k*MM; };
+  var c=[];
+  c.push('1 J 1 j');                            /* round caps and joins */
+
+  if(F.arena){
+    var bg=flat(F.arena.mode==='homog'
+      ? (F.SC[F.arena.subs]||F.SC.agar).fill : F.SC.agar.fill);
+    c.push(n3(bg.r)+' '+n3(bg.g)+' '+n3(bg.b)+' rg');
+    c.push(n3(X(0))+' '+n3(Y(F.H))+' '+n3(F.W*F.k*MM)+' '+n3(F.H*F.k*MM)+' re f');
+    (F.arena.patches||[]).forEach(function(q){
+      var col=F.SC[q[3]]||F.SC.agar, fc=flat(col.fill), lc=flat(col.line);
+      var cx=X(q[0]), cy=Y(q[1]), r=R(q[2]), kk=r*0.5523;
+      c.push(n3(fc.r)+' '+n3(fc.g)+' '+n3(fc.b)+' rg');
+      c.push(n3(lc.r)+' '+n3(lc.g)+' '+n3(lc.b)+' RG 0.6 w');
+      c.push(n3(cx+r)+' '+n3(cy)+' m');
+      c.push(n3(cx+r)+' '+n3(cy+kk)+' '+n3(cx+kk)+' '+n3(cy+r)+' '+n3(cx)+' '+n3(cy+r)+' c');
+      c.push(n3(cx-kk)+' '+n3(cy+r)+' '+n3(cx-r)+' '+n3(cy+kk)+' '+n3(cx-r)+' '+n3(cy)+' c');
+      c.push(n3(cx-r)+' '+n3(cy-kk)+' '+n3(cx-kk)+' '+n3(cy-r)+' '+n3(cx)+' '+n3(cy-r)+' c');
+      c.push(n3(cx+kk)+' '+n3(cy-r)+' '+n3(cx+r)+' '+n3(cy-kk)+' '+n3(cx+r)+' '+n3(cy)+' c');
+      c.push('B');                                   /* fill and stroke */
+    });
+  }
+  c.push('0.75 0.75 0.75 RG 0.5 w');
+  c.push(n3(X(0))+' '+n3(Y(F.H))+' '+n3(F.W*F.k*MM)+' '+n3(F.H*F.k*MM)+' re S');
+
+  F.sel.forEach(function(r){
+    var col=flat(colourOf(r));
+    c.push(n3(col.r)+' '+n3(col.g)+' '+n3(col.b)+' RG 0.45 w');
+    r.track.forEach(function(p,i){
+      c.push(n3(X(p.x_mm))+' '+n3(Y(p.y_mm))+(i?' l':' m'));
+    });
+    c.push('S');
+    foodRuns(r.track).forEach(function(seg){
+      c.push('1.3 w');
+      seg.forEach(function(p,i){ c.push(n3(X(p.x_mm))+' '+n3(Y(p.y_mm))+(i?' l':' m')); });
+      c.push('S');
+    });
+  });
+
+  /* scale bar under the arena */
+  var by=Y(F.H)-5*MM, bx=X(0);
+  c.push('0 0 0 RG 1 w');
+  c.push(n3(bx)+' '+n3(by)+' m '+n3(bx+F.bar*F.k*MM)+' '+n3(by)+' l S');
+  c.push('BT /F1 7 Tf 0 0 0 rg '+n3(bx)+' '+n3(by-8)+' Td ('+pstr(F.bar+' mm')+') Tj ET');
+  /* trace duration, right-aligned on the same baseline as the scale bar */
+  var sl=spanLabel(F.span);
+  if(sl){
+    var tw=ascii(sl).length*7*0.5;           /* Helvetica averages ~0.5 em */
+    c.push('0.35 0.35 0.35 rg BT /F1 7 Tf '+n3(X(F.W)-tw)+' '+n3(by-8)+
+      ' Td ('+pstr(sl)+') Tj ET');
+  }
+
+  /* legend above the arena */
+  var ly=ph-pad*MM-6;
+  F.conds.forEach(function(cond){
+    var cc=flat(condColourIn(F.sel,cond));
+    c.push(n3(cc.r)+' '+n3(cc.g)+' '+n3(cc.b)+' rg');
+    c.push(n3(ox)+' '+n3(ly)+' 5 5 re f');
+    c.push('0 0 0 rg BT /F1 7 Tf '+n3(ox+9)+' '+n3(ly+0.5)+' Td ('+pstr(cond)+') Tj ET');
+    ly-=11;                                  /* one legend line, in points */
+  });
+  if(F.onFood)
+    c.push('0.35 0.35 0.35 rg BT /F1 6.5 Tf '+n3(ox)+' '+n3(ly+1)+' Td (thick = on food) Tj ET');
+  if(F.clash)
+    c.push('0.7 0.45 0.1 rg BT /F1 6.5 Tf '+n3(ox)+' '+n3(ly-9)+
+      ' Td (selection spans different arenas - no substrate drawn) Tj ET');
+
+  var stream=c.join('\n');
+  var objs=[
+    '<</Type/Catalog/Pages 2 0 R>>',
+    '<</Type/Pages/Kids[3 0 R]/Count 1>>',
+    '<</Type/Page/Parent 2 0 R/MediaBox[0 0 '+n3(pw)+' '+n3(ph)+']' +
+      '/Resources<</Font<</F1 5 0 R>>>>/Contents 4 0 R>>',
+    '<</Length '+stream.length+'>>\nstream\n'+stream+'\nendstream',
+    '<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>'
+  ];
+  var out='%PDF-1.4\n', offs=[];
+  objs.forEach(function(o,i){
+    offs.push(out.length);
+    out += (i+1)+' 0 obj\n'+o+'\nendobj\n';
+  });
+  var xref=out.length;
+  out += 'xref\n0 '+(objs.length+1)+'\n0000000000 65535 f \n';
+  offs.forEach(function(o){ out += ('0000000000'+o).slice(-10)+' 00000 n \n'; });
+  out += 'trailer\n<</Size '+(objs.length+1)+'/Root 1 0 R>>\nstartxref\n'+xref+'\n%%EOF\n';
+  return out;
+}
+
+function buildSvg(widthMM, runs){
+  var F=figureModel(widthMM, runs);
+  if(!F) return null;
+  var pad=8, lh=(F.conds.length*5)+(F.onFood?5:0)+4;
+  var w=F.W*F.k+2*pad, h=F.H*F.k+2*pad+10+lh;
+  var X=function(x){ return (pad+x*F.k).toFixed(3); };
+  var Y=function(y){ return (pad+lh+y*F.k).toFixed(3); };
+  var e=[];
+  e.push('<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'mm" height="'+h+'mm" '+
+         'viewBox="0 0 '+w+' '+h+'">');
+  e.push('<rect width="100%" height="100%" fill="#fff"/>');
+  if(F.arena){
+    var bg=F.arena.mode==='homog'?(F.SC[F.arena.subs]||F.SC.agar).fill:F.SC.agar.fill;
+    e.push('<rect x="'+X(0)+'" y="'+Y(0)+'" width="'+(F.W*F.k).toFixed(3)+
+           '" height="'+(F.H*F.k).toFixed(3)+'" fill="'+bg+'"/>');
+    (F.arena.patches||[]).forEach(function(q){
+      var col=F.SC[q[3]]||F.SC.agar;
+      e.push('<circle cx="'+X(q[0])+'" cy="'+Y(q[1])+'" r="'+(q[2]*F.k).toFixed(3)+
+             '" fill="'+col.fill+'" stroke="'+col.line+'" stroke-width="0.25"/>');
+    });
+  }
+  e.push('<rect x="'+X(0)+'" y="'+Y(0)+'" width="'+(F.W*F.k).toFixed(3)+'" height="'+
+         (F.H*F.k).toFixed(3)+'" fill="none" stroke="#bbb" stroke-width="0.2"/>');
+  F.sel.forEach(function(r){
+    var col=colourOf(r);
+    e.push('<polyline fill="none" stroke="'+col+'" stroke-width="0.16" '+
+      'stroke-linejoin="round" points="'+
+      r.track.map(function(p){ return X(p.x_mm)+','+Y(p.y_mm); }).join(' ')+'"/>');
+    foodRuns(r.track).forEach(function(seg){
+      e.push('<polyline fill="none" stroke="'+col+'" stroke-width="0.46" '+
+        'stroke-linecap="round" stroke-linejoin="round" points="'+
+        seg.map(function(p){ return X(p.x_mm)+','+Y(p.y_mm); }).join(' ')+'"/>');
+    });
+  });
+  var by=(pad+lh+F.H*F.k+5).toFixed(3);
+  e.push('<line x1="'+X(0)+'" y1="'+by+'" x2="'+X(F.bar)+'" y2="'+by+
+         '" stroke="#000" stroke-width="0.35"/>');
+  e.push('<text x="'+X(0)+'" y="'+(+by+3.2).toFixed(3)+
+         '" font-family="Helvetica,Arial,sans-serif" font-size="2.5">'+F.bar+' mm</text>');
+  var sl=spanLabel(F.span);
+  if(sl)
+    e.push('<text x="'+X(F.W)+'" y="'+(+by+3.2).toFixed(3)+'" text-anchor="end" '+
+           'font-family="Helvetica,Arial,sans-serif" font-size="2.5" fill="#555">'+
+           ascii(sl).replace(/[<&]/g,'')+'</text>');
+  var ly=pad;
+  F.conds.forEach(function(cond){
+    e.push('<rect x="'+pad+'" y="'+ly+'" width="1.8" height="1.8" fill="'+condColourIn(F.sel,cond)+'"/>');
+    e.push('<text x="'+(pad+3)+'" y="'+(ly+1.7)+'" font-family="Helvetica,Arial,sans-serif" '+
+           'font-size="2.5">'+ascii(cond).replace(/[<&]/g,'')+'</text>');
+    ly+=5;
+  });
+  if(F.onFood)
+    e.push('<text x="'+pad+'" y="'+(ly+1.7)+'" font-family="Helvetica,Arial,sans-serif" '+
+           'font-size="2.2" fill="#666">thick = on food</text>');
+  e.push('</svg>');
+  return e.join('\n');
+}
+
+/* The main simulation window exports its own trajectory through this. One
+   figure implementation, two callers - the batch panel and the live page -
+   so a change to the figure cannot apply to only one of them. */
+window.__LARVA_FIG = {
+  pdf:function(runs,w){ return buildPdf(w||120, runs); },
+  svg:function(runs,w){ return buildSvg(w||120, runs); },
+  save:function(name,txt,mime){ save(name,txt,mime); }
+};
+
+function exportFigure(kind){
+  var n=RESULTS.filter(function(r){ return r.ok && PICKED[r.run_id] && r.track; }).length;
+  if(!n){ $('b_note').textContent='select some runs first — the figure draws what is ticked';
+          $('b_note').classList.add('warn'); return; }
+  var txt = kind==='pdf' ? buildPdf(120) : buildSvg(120);
+  if(!txt) return;
+  save(prefix()+'_figure.'+kind, txt, kind==='pdf'?'application/pdf':'image/svg+xml');
+  $('b_note').classList.remove('warn');
+  $('b_note').textContent=kind.toUpperCase()+' figure saved — '+n+' trajector'+(n>1?'ies':'y')+
+    ', vector, 120 mm wide';
+}
+
+/* ---------- load one run back into the live page ------------------------ */
+function loadRun(id){
+  var r=null;
+  for(var i=0;i<RESULTS.length;i++) if(RESULTS[i].run_id===id) r=RESULTS[i];
+  if(!r||!r.ok) return;
+  (r.buttons?r.buttons.split('|'):[]).forEach(function(b){
+    var e=b&&document.getElementById(b); if(e) e.click();
+  });
+  Object.keys(r.params).forEach(function(k){
+    var e=document.getElementById(k);
+    if(e && e.type==='range'){ e.value=String(r.params[k]); e.dispatchEvent(new Event('input')); }
+  });
+  var rst=document.getElementById('rst'); if(rst) rst.click();
+  show(false);
+  /* Not necessarily an exact replay: the live arena's aspect ratio is taken
+     from the canvas, so its height depends on the browser window, while a
+     batch run always uses the headless 0.5. Same seed and parameters, same
+     width - the shape may differ. */
+  $('b_note').textContent='loaded '+id+' into the live view — same seed and parameters '+
+    '(arena height may differ: the live view takes its aspect from the window)';
+}
+
+/* ---------- show / hide -------------------------------------------------- */
+function show(on){
+  $('batchui').hidden=!on;
+  document.querySelector('main').style.display = on?'none':'';
+  document.querySelector('.scrubbar').style.display = on?'none':'';
+  document.querySelector('.stats').style.display = on?'none':'';
+  $('bbtn').classList.toggle('on',on);
+  if(on){ describePlan(); drawTable(); setTimeout(drawOverlay,0); }
+}
+
+/* ---------- wiring ------------------------------------------------------- */
+fillSelects();
+$('bbtn').addEventListener('click', function(){ show($('batchui').hidden); });
+$('b_run').addEventListener('click', start);
+$('b_stop').addEventListener('click', function(){
+  if(HANDLE) HANDLE.cancel();
+  $('b_stat').textContent='cancelling…';
+});
+['b_p1','b_p2','b_v1','b_v2','b_seeds','b_dur'].forEach(function(id){
+  $(id).addEventListener('input', describePlan);
+  $(id).addEventListener('change', describePlan);
+});
+function autoWarn(){
+  var bad=[];
+  ['b_p1','b_p2'].forEach(function(id){
+    var sel=$(id), o=sel.options[sel.selectedIndex];
+    if(o && o.getAttribute('data-auto')) bad.push(sel.value);
+  });
+  $('b_note').textContent = bad.length
+    ? bad.join(' and ')+(bad.length>1?' are':' is')+
+      ' set automatically from the substrate every frame — varying '+
+      (bad.length>1?'them':'it')+' will give identical conditions'
+    : 'click a row to draw it; double-click to load it into the live view';
+  $('b_note').classList.toggle('warn', bad.length>0);
+}
+['b_p1','b_p2'].forEach(function(id){ $(id).addEventListener('change', autoWarn); });
+$('b_head').addEventListener('click', function(e){
+  var th=e.target.closest('th'); if(!th) return;
+  var k=th.getAttribute('data-k');
+  if(SORT.key===k) SORT.dir*=-1; else { SORT.key=k; SORT.dir=1; }
+  drawTable();
+});
+$('b_body').addEventListener('click', function(e){
+  var tr=e.target.closest('tr'); if(!tr) return;
+  var id=tr.getAttribute('data-id'); if(!id) return;
+  if(e.metaKey||e.ctrlKey||e.shiftKey){ loadRun(id); return; }
+  PICKED[id]=!PICKED[id];
+  drawTable(); drawOverlay();
+});
+$('b_body').addEventListener('dblclick', function(e){
+  var tr=e.target.closest('tr'); if(!tr) return;
+  var id=tr.getAttribute('data-id'); if(id) loadRun(id);
+});
+$('b_pdf').addEventListener('click', function(){ exportFigure('pdf'); });
+$('b_svg').addEventListener('click', function(){ exportFigure('svg'); });
+$('b_json').addEventListener('click', exportBundle);
+$('b_csv').addEventListener('click', exportCsvs);
+$('b_clear').addEventListener('click', function(){
+  RESULTS=[]; PICKED={}; drawTable(); drawOverlay(); $('b_note').textContent='';
+});
+window.addEventListener('resize', function(){ if(!$('batchui').hidden) drawOverlay(); });
+
+$('b_note').textContent='click a row to draw it; double-click to load it into the live view';
+})();
+</script>
+</body>
+</html>

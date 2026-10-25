@@ -1,0 +1,13 @@
+# headless run output
+runs.csv
+visits.csv
+tracks/
+out/
+*_figure.pdf
+*_figure.svg
+*.webm
+
+# scratch
+/tmp/
+node_modules/
+.DS_Store
