@@ -698,9 +698,9 @@ figure.code.miss pre{color:var(--coral)}
 
 <h3>Habituation</h3>
 <p><var>H</var> &isin; [0,1] starts at 1. It decays while the head is touching and recovers once clear. Recovery speeds up with the number of contacts <var>n</var>:</p>
-<div class="eq">touching:&ensp; <var>H</var> &larr; <var>H</var> &middot; e<sup>&minus;<var>dt</var>/<span class="pk">tdes</span></sup>;&emsp; every 0.5&nbsp;s of continuous touch: <var>n</var> &larr; <var>n</var>+1, <var>H</var> &larr; <var>H</var> &middot; e<sup>&minus;<span class="pk">cdose</span>/<span class="pk">tdes</span></sup></div>
-<div class="eq">clear:&ensp; <var>&tau;</var>&#8242; = max(0.05, <span class="pk">tres</span> &middot; e<sup>&minus;<span class="pk">rgain</span>&middot;max(0, <var>n</var>&minus;1)</sup>),&emsp; <var>H</var> &larr; <var>H</var> + (1 &minus; <var>H</var>) min(1, <var>dt</var>/<var>&tau;</var>&#8242;)</div>
-<p class="dnote">The equations above describe the code as written. The comments say the dose is given per touch and that <var>n</var> resets after 8&nbsp;s clear. Because <code>lastClear</code> is updated on every clear step, two things differ from that. First, the dose is applied once per 0.5&nbsp;s of <em>continuous</em> contact, so touches shorter than 0.5&nbsp;s get none. Second, the 8&nbsp;s reset never fires, so <var>n</var> keeps growing over a run and recovery becomes faster and faster. See <a href="#d-notes">notes</a>.</p>
+<div class="eq">touching:&ensp; <var>H</var> &larr; <var>H</var> &middot; e<sup>&minus;<var>dt</var>/<span class="pk">tdes</span></sup>;&emsp; at the start of each touch: <var>n</var> &larr; <var>n</var>+1, <var>H</var> &larr; <var>H</var> &middot; e<sup>&minus;<span class="pk">cdose</span>/<span class="pk">tdes</span></sup></div>
+<div class="eq">clear:&ensp; <var>n</var> &larr; 0 after 8&nbsp;s clear (end of bout);&emsp; <var>&tau;</var>&#8242; = max(0.05, <span class="pk">tres</span> &middot; e<sup>&minus;<span class="pk">rgain</span>&middot;max(0, <var>n</var>&minus;1)</sup>),&emsp; <var>H</var> &larr; <var>H</var> + (1 &minus; <var>H</var>) min(1, <var>dt</var>/<var>&tau;</var>&#8242;)</div>
+<p>A touch starts when the head first presses into a wall. If the head comes back within 0.5&nbsp;s of the previous touch ending, it counts as the same touch and gets no new dose. Contacts within a bout speed up recovery; 8&nbsp;s clear of the wall ends the bout.</p>
 <p>The four genotype buttons (WT, rut, dnc, cam0) set (<span class="pk">tdes</span>, <span class="pk">tres</span>) to (18.9, 5.3), (5.2, 3.6), (14.3, 9.8) and (25.6, 6.5) s.</p>
 <figure class="code" data-range="var hitting=hitting0;|if(nearWall()){" data-cap="stepSim(): habituation"></figure>
 
@@ -807,7 +807,6 @@ figure.code.miss pre{color:var(--coral)}
 <p>Places where the code, comments or tooltips disagree, or where behaviour is not obvious. None of these have been changed.</p>
 <ol class="dsteps">
   <li><b>Wave interval vs stride period.</b> A wave can only start once the previous one has left the body, after 10&middot;<span class="pk">del</span> + <span class="pk">dur</span> (1.5&nbsp;s at defaults). <code>applyLocal</code> limits the stride period from below using 10&middot;<span class="pk">del</span> only (0.9&nbsp;s), without <span class="pk">dur</span>. On agar it sets the period to that 0.9&nbsp;s floor (the slider's written value of 1.07 is replaced as soon as the page loads). So on agar and sucrose the gate, not "Stride period", sets the crawl rhythm: waves come every 1.5&nbsp;s, not every 0.9&nbsp;s. The speed matching and the pause fraction are both computed for a period that is never reached.</li>
-  <li><b>Habituation counter never resets.</b> In the habituation block <code>lastClear</code> is set on every clear step, so <code>t-lastClear&gt;8</code> is never true. <var>n</var> grows for the whole run, and recovery gets faster with every contact ever made. The same detail means the "contact dose" is given every 0.5&nbsp;s of continuous contact rather than once per touch.</li>
   <li><b>Local search tooltips.</b> "Search int" says the stride period is divided by <span class="pk">lsi</span>. In the code the stride period is multiplied by a fixed 0.85; <span class="pk">lsi</span> affects run length only. The "Local search" tooltip says turns aim back at the exit point. That is controlled by <span class="pk">lsb</span>, which defaults to 0.</li>
   <li><b>Hidden parameter.</b> <span class="pk">lsq</span> = 0.6 (how much patch quality lengthens local search) has no slider and cannot be set from the batch runner.</li>
   <li><b>Inward bias is stronger than <span class="pk">pb</span>.</b> A failed inward draw falls back to handedness, which points inward about half the time (see <a href="#d-turn">turning</a>).</li>
@@ -1135,7 +1134,7 @@ var timeIn=0, patchVisits=0, timeBorder=0;
    what makes repeated contact step the response down the documented hierarchy
    reversal -> turn -> pause -> continue. Recovery accelerates with the number
    of contacts in the current bout. */
-var habit=1, nContact=0, lastClear=0, wallTier=3;
+var habit=1, nContact=0, touching=false, touchEnd=-1e9, wallTier=3;
 /* ---- patch leaving as evidence accumulation -----------------------------
    Residence is not a parameter here. While the larva is on a patch a decision
    variable accumulates (Ornstein-Uhlenbeck: drift + leak + noise) and leaving
@@ -1770,17 +1769,23 @@ function stepSim(dt){
   var hitting=hitting0;
   if(hitting){
     habit*=Math.exp(-dt/Math.max(0.2,P.tdes));
-    if(t-lastClear>0.5){
+    if(!touching){
+      touching=true;
       /* a discrete touch counts for more than its own duration: the pulse
-         protocol decrements the response per pulse, not per second */
-      nContact++; lastClear=t;
-      habit*=Math.exp(-P.cdose/Math.max(0.2,P.tdes));
+         protocol decrements the response per pulse, not per second. One dose
+         per touch onset; a head that flickers back within 0.5 s is the same
+         touch. (This used to dose every 0.5 s of continuous contact, give
+         nothing to touches under 0.5 s, and never end a bout.) */
+      if(t-touchEnd>0.5){
+        nContact++;
+        habit*=Math.exp(-P.cdose/Math.max(0.2,P.tdes));
+      }
     }
   } else {
+    if(touching){ touching=false; touchEnd=t; }
+    if(t-touchEnd>8) nContact=0;          /* 8 s clear ends the bout */
     var tres=Math.max(0.05,P.tres*Math.exp(-P.rgain*Math.max(0,nContact-1)));
     habit+=(1-habit)*Math.min(1,dt/tres);
-    if(t-lastClear>8){ nContact=0; }
-    lastClear=t;
   }
   wallTier = habit>0.66?3 : habit>0.33?2 : habit>0.12?1 : 0;
 
@@ -1865,7 +1870,7 @@ function reset(){
   nCast=0; revLeft=0; decided=false; pend=null; wallCool=0;
   nTurns=0; nWaves=0; sumTurn=0; lastTurn=0; strideMM=0; speedAvg=0; pathLen=0;
   timeIn=0; patchVisits=0; timeBorder=0; curLocal=''; strideSum=0; strideN=0;
-  habit=1; nContact=0; lastClear=0; wallTier=3; lsEnd=-1;
+  habit=1; nContact=0; touching=false; touchEnd=-1e9; wallTier=3; lsEnd=-1;
   ouX=0; leaving=false; memQ=-1; memT=-1e9; lastRes=0; patchIn=-1;
   resSum=0; resN=0; prevLocal='agar'; pendOut=-1; pendSub='agar'; patchIdx=-1;
   pendWhy='wander'; nDecide=0; nWander=0;
