@@ -394,6 +394,33 @@ behavioural measure that would distinguish these is turn rate near the boundary,
 Note also that turn rate without habituation (3.97/min) sits above the published 1.7–2.8, and with
 it (2.9–3.3) much closer — so habituation improves agreement on the metric it actually affects.
 
+**Correction (2026-10-26): the turn-rate effect was a bug.** The habituation code did not do what
+this section describes. `lastClear` was refreshed on every step clear of the wall, so (1) the
+contact dose was applied every 0.5 s of *continuous* pressing rather than once per touch, (2)
+touches shorter than 0.5 s got no dose at all, and (3) the 8 s bout reset never fired, so the
+contact count grew for the whole run and recovery kept getting faster. Fixed to one dose per touch
+onset (a re-touch within 0.5 s is the same touch) and a bout that ends after 8 s clear.
+
+Re-measured with `cfg_habituation.js` (20 seeds × 900 s, uniform agar), on the current model just
+before and just after the fix. The table above is from an earlier model version, so its absolute
+values differ from the "before" column. ± is the standard error.
+
+| Condition | Border time, before | Border time, after | Turns/min, before | Turns/min, after | Speed mm/s, before | Speed mm/s, after |
+|---|---|---|---|---|---|---|
+| No habituation | 0.497 ± 0.031 | 0.497 ± 0.031 | 3.61 ± 0.10 | 3.61 ± 0.10 | 0.390 | 0.390 |
+| *cam⁰* (slow) | 0.502 ± 0.027 | 0.478 ± 0.024 | 3.09 ± 0.10 | 3.67 ± 0.13 | 0.406 | 0.385 |
+| Wild type | 0.478 ± 0.024 | 0.472 ± 0.033 | 3.12 ± 0.09 | 4.01 ± 0.19 | 0.406 | 0.387 |
+| *dnc* | 0.502 ± 0.033 | 0.489 ± 0.025 | 2.98 ± 0.10 | 3.74 ± 0.13 | 0.410 | 0.388 |
+| *rut* (fast) | 0.559 ± 0.031 | 0.482 ± 0.025 | 2.69 ± 0.09 | 3.48 ± 0.13 | 0.425 | 0.398 |
+
+Border time is still unaffected by habituation. **Turn rate no longer falls with habituation**:
+with the fix all five conditions are within about two standard errors of each other, and wild type
+sits slightly *above* no habituation. Habituation itself still happens — mean response level at
+the end of a run is 0.99 with none, 0.93 wild type, 0.76 *rut* — but one dose per touch is far
+less than one dose per half-second of pressing, and that is not enough to change how often the
+larva turns. The reading above ("a habituated larva stops reversing and casting at the wall"), and
+the claim that habituation brings turn rate closer to the published 1.7–2.8, no longer hold.
+
 ---
 
 ## 5. Parameters and their provenance
