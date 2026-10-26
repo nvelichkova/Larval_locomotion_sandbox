@@ -128,6 +128,74 @@ main{display:grid;grid-template-columns:minmax(0,1fr) var(--right);gap:6px;min-h
 header select{background:var(--panel);color:var(--tx);border:1px solid var(--line);
   border-radius:6px;padding:2px 4px;font:inherit;font-size:11px;max-width:200px}
 #b_plan,#b_stat,#b_note{text-transform:none;letter-spacing:0;font-size:10.5px}
+/* ---- documentation view -------------------------------------------------
+   Swapped in for everything below the header, like the batch view. */
+#docs{display:none}
+body.docs{grid-template-rows:auto minmax(0,1fr)}
+body.docs > *:not(header):not(#docs):not(script){display:none!important}
+body.docs #docs{display:grid;grid-template-columns:210px minmax(0,1fr);gap:6px;min-height:0}
+.dnav,.dbody{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  overflow:auto;min-height:0}
+.dnav{padding:10px 6px;font-size:11.5px}
+.dnav a{display:block;padding:4px 8px;border-radius:5px;color:var(--tx2);text-decoration:none;line-height:1.3}
+.dnav a:hover{background:var(--bg);color:var(--tx)}
+.dnav a.on{color:var(--teal);background:rgba(29,158,117,.09)}
+.dbody{padding:0 16px}
+.dart{max-width:900px;margin:0 auto;padding:18px 0 60px;font-size:13.5px;line-height:1.6}
+.dart .dtitle{font-size:22px;font-weight:600;margin:4px 0 6px}
+.dart .dlede{color:var(--tx2);font-size:14px}
+.dart h2{font-size:17px;font-weight:600;margin:34px 0 8px;padding-top:12px;
+  border-top:1px solid var(--line);scroll-margin-top:8px}
+.dart h3{font-size:14px;font-weight:600;margin:20px 0 6px}
+.dart p,.dart ul,.dart ol{margin:6px 0 10px}
+.dart ul,.dart ol{padding-left:22px}
+.dart li{margin:3px 0}
+.dart a{color:var(--teal)}
+.dart code{font:12px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;background:var(--bg);
+  border:1px solid var(--line);border-radius:4px;padding:0 4px}
+.dart var{font-family:"Cambria Math",Cambria,"Times New Roman",serif;font-style:italic;font-size:1.06em}
+.pk{font:11.5px/1 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--purple);
+  background:rgba(127,119,221,.10);border-radius:4px;padding:1px 4px;white-space:nowrap}
+.pv{font-variant-numeric:tabular-nums;color:var(--teal);font-weight:600}
+.eq{margin:10px 0;padding:9px 14px;background:var(--bg);border-left:3px solid var(--purple);
+  border-radius:0 6px 6px 0;font-family:"Cambria Math",Cambria,"Times New Roman",serif;
+  font-size:14.5px;line-height:1.7;overflow-x:auto}
+.eq .pk{font-size:12px}
+.dnote{background:rgba(186,117,23,.09);border-left:3px solid var(--amber);
+  padding:7px 12px;border-radius:0 6px 6px 0}
+.dsteps li{margin:5px 0}
+.dtab{border-collapse:collapse;width:100%;margin:8px 0 12px;font-size:12.5px}
+.dtab th{text-align:left;font-weight:600;font-size:11px;color:var(--tx2);text-transform:uppercase;
+  letter-spacing:.04em;border-bottom:1px solid var(--line);padding:5px 8px;vertical-align:bottom}
+.dtab td{border-bottom:1px solid var(--line);padding:5px 8px;vertical-align:top}
+.dtab.num td+td{font-variant-numeric:tabular-nums}
+.ptab td.k{white-space:nowrap}
+.ptab td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ptab td.d{color:var(--tx2);font-size:12px;min-width:240px}
+.ptab tr.grp td{background:var(--bg);font-weight:600;color:var(--tx);font-size:12px;
+  text-transform:uppercase;letter-spacing:.04em}
+.ptab tr.chg td.now{color:var(--coral);font-weight:600}
+.flag{display:inline-block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;
+  border-radius:3px;padding:0 4px;margin:1px 2px 1px 0;border:1px solid}
+.flag.auto{color:var(--amber);border-color:var(--amber)}
+.flag.guess{color:var(--coral);border-color:var(--coral)}
+.flag.refuted{color:var(--tx2);border-color:var(--tx2)}
+.flag.display{color:var(--teal);border-color:var(--teal)}
+figure.code{margin:10px 0 14px;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+figure.code figcaption{display:flex;justify-content:space-between;gap:10px;font-size:11px;
+  color:var(--tx2);background:var(--bg);padding:4px 10px;border-bottom:1px solid var(--line)}
+figure.code figcaption b{font-weight:500;color:var(--tx)}
+figure.code pre{margin:0;padding:8px 10px;max-height:380px;overflow:auto;
+  font:11.5px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2;color:var(--tx)}
+figure.code pre code{background:none;border:0;padding:0;font:inherit}
+figure.code.miss pre{color:var(--coral)}
+.hc{color:#8a8a82;font-style:italic}.hs{color:#b5651d}.hn{color:#1d7fb0}.hk{color:#7f57c9;font-weight:600}
+@media (prefers-color-scheme:dark){
+  .hc{color:#82817b}.hs{color:#e0a46a}.hn{color:#6cb6e6}.hk{color:#b3a6ff}}
+@media (max-width:800px){
+  body.docs #docs{grid-template-columns:1fr}
+  .dnav{display:none}
+  .dbody{padding:0 12px}}
 </style>
 </head>
 <body>
@@ -175,6 +243,7 @@ header select{background:var(--panel);color:var(--tx);border:1px solid var(--lin
   <button id="imp" title="Load a trajectory CSV: this sandbox's own export, or foreign spine tracking with a time column and x/y columns per midline point. Replaces the replay buffer.">Import</button>
   <input type="file" id="impfile" accept=".csv,.tsv,.txt,text/csv" style="display:none">
   <button id="bbtn" title="Run many simulations with different parameter values and compare them. Uses every core the browser will give it.">Batch</button>
+  <button id="dbtn" title="How the model works: every mechanism, its equations and the code that implements it.">Docs</button>
   <span class="spacer"></span>
   <span class="lbl">controls</span>
   <button class="tab on" data-tab="all">All</button>
@@ -379,6 +448,374 @@ header select{background:var(--panel);color:var(--tx);border:1px solid var(--lin
     <button id="b_csv" title="runs, visits and turns as three CSVs, the same long format the Node tooling writes.">Export CSVs</button>
     <button id="b_clear">Clear results</button>
     <span class="lbl" id="b_note"></span>
+  </div>
+</section>
+<section id="docs" aria-label="Model documentation">
+  <nav class="dnav" id="d_nav" aria-label="Documentation contents"></nav>
+  <div class="dbody" id="d_body">
+  <article class="dart">
+
+<h1 class="dtitle">How the model works</h1>
+<p class="dlede">This page describes every mechanism in the simulation: what is modelled, the equation, and the code that implements it. The code excerpts are not copies. They are read from this page's own <code>&lt;script id="model"&gt;</code> block each time this view opens, so they always match the model that is running. Symbols in the equations are tied to the sliders by their internal key, shown like this: <span class="pk">per</span>. Values shown as <b class="pv" data-p="per"></b> are the current slider settings.</p>
+
+<!-- ===================================================================== -->
+<h2 id="d-overview">1. Overview and the simulation loop</h2>
+<p>The model is <b>kinematic, not dynamic</b>. There are no forces, masses or torques. At each step the model sets the body's <em>shape</em> from muscle activity (segment shortening and intersegmental bend angles). It then finds the <em>position</em> of that shape in the arena by a weighted best fit to where the body was a moment earlier. The weights stand for how firmly each part grips the substrate. Grip resists backward sliding much more than forward sliding, so a contraction wave that passes along the body moves it forward. Crawling, stride length and turn angle all come out of this; none of them is imposed directly.</p>
+
+<h3>Time step</h3>
+<p>The simulation advances in fixed steps of <var>h</var> = 2&nbsp;ms. Each animation frame takes the elapsed real time (capped at 50&nbsp;ms), multiplies it by Sim speed <span class="pk">spd</span>, and runs as many 2&nbsp;ms steps as fit (at most 6000 per frame). Results therefore do not depend on frame rate or Sim speed. The batch runner and the Node tools drive the same function on simulated time.</p>
+<div class="eq"><var>n</var> = round(<var>&Delta;t</var><sub>frame</sub> &middot; <span class="pk">spd</span> / <var>h</var>),&ensp; <var>h</var> = 0.002&nbsp;s</div>
+<figure class="code" data-range="var h=(typeof __LARVA_H|syncDisplay();" data-cap="loop(): integration step"></figure>
+
+<h3>Order of operations in one step</h3>
+<p><code>stepSim(dt)</code> runs these stages in order:</p>
+<ol class="dsteps">
+  <li>Fire relay events that are due: <a href="#d-peri">peristalsis</a>.</li>
+  <li>End a pause whose time is up; start a new wave if the body is crawling and the previous wave has left the body; possibly enter a <a href="#d-pause">pause</a>.</li>
+  <li>Update the commanded bend for the current state: head sweep, held turn, weathervane or relaxing (<a href="#d-bend">bending</a>).</li>
+  <li>Update wall deflection and postural curvature.</li>
+  <li>Build the body shape in its own frame (<code>localShape</code>).</li>
+  <li>Compute contact weights; place the body by weighted rigid fit; re-fit with backward friction (<a href="#d-contact">contact</a>).</li>
+  <li>Migrate the turning bend backwards along the body.</li>
+  <li>Push the body out of the walls and trigger the wall response; update habituation (<a href="#d-wall">boundary</a>).</li>
+  <li>Update heading and local substrate; run the patch-leaving accumulator and visit bookkeeping (<a href="#d-leave">patch leaving</a>).</li>
+  <li>Score border time, finished turns, path length and speed; start a spontaneous turn if the run is over.</li>
+  <li>Every 0.05&nbsp;s of simulated time, write a frame to the replay buffer.</li>
+</ol>
+
+<h3>Behavioural states</h3>
+<table class="dtab">
+  <thead><tr><th>State</th><th>What the body does</th><th>Entered from</th><th>Leaves to</th></tr></thead>
+  <tbody>
+    <tr><td><code>run</code></td><td>Forward peristalsis, weathervane bend, possibly a held turn bend straightening out</td><td>start; accepted sweep; end of pause; end of reversal</td><td>cast (run timer, wall); back (wall); pause (per wave or wall)</td></tr>
+    <tr><td><code>cast</code></td><td>No peristalsis. Head sweeps side to side with growing amplitude until a sweep is accepted</td><td>run timer expiring; wall response; end of reversal</td><td>run (accepted); back (8 rejected sweeps at a wall)</td></tr>
+    <tr><td><code>back</code></td><td>Backward peristalsis for 2 waves, bend relaxes to 0</td><td>wall response tier 3; Reverse button; failed casting at wall</td><td>cast (probability <span class="pk">rvp</span>) or run</td></tr>
+    <tr><td><code>pause</code></td><td>No new waves, bend relaxes to 0</td><td>random per wave; wall response tier 1</td><td>run</td></tr>
+  </tbody>
+</table>
+
+<h3>Random numbers</h3>
+<p>Every random choice draws from one seeded generator (mulberry32), so a given <span class="pk">seed</span> reproduces a run exactly. Reset re-seeds it. Waiting times use the exponential distribution, drawn by inverse transform:</p>
+<div class="eq"><var>X</var> = &minus;<var>m</var> ln(1 &minus; <var>U</var>),&ensp; <var>U</var> ~ Uniform(0,1),&ensp; mean <var>m</var></div>
+<figure class="code" data-fn="rnd,seedRng,expo" data-cap="random number generator"></figure>
+
+<!-- ===================================================================== -->
+<h2 id="d-body">2. The body</h2>
+<p>The body is a chain of 11 segments, T1&ndash;T3 and A1&ndash;A8, total length <var>L</var> = 4&nbsp;mm at rest, so each segment is <var>s</var> = 4/11 &asymp; 0.364&nbsp;mm long. The chain is described by 12 midline points: index 0 is the head, 1&ndash;10 are the intersegmental boundaries (T1/T2 &hellip; A7/A8), and 11 is the tail. Segment <var>i</var> runs from point <var>i</var> to point <var>i</var>+1. The bend angle <var>&beta;</var><sub><var>b</var></sub> sits at boundary <var>b</var> = 1&hellip;10.</p>
+<figure class="code" data-var="SEG,BODY" data-cap="segment names and body length"></figure>
+
+<h3>Width</h3>
+<p>The width profile <code>BODYW</code> was measured from hand-labelled landmarks on both body margins (116 frames, 3 recordings). It peaks at A2/A3, and head and tail are tapered to 0.30. It is used twice:</p>
+<ul>
+  <li>for drawing: half-width = 0.38&nbsp;mm &times; <code>BODYW</code><sub><var>j</var></sub> (cosmetic only);</li>
+  <li>for mechanics: the two ventral denticle bands sit at &plusmn;<span class="pk">rsp</span> &times; <code>BODYW</code><sub><var>j</var></sub> from the midline (see <a href="#d-contact">contact</a>). At the default <span class="pk">rsp</span> = 0 the body is mechanically a line.</li>
+</ul>
+<figure class="code" data-var="BODYW" data-fn="bodyHalfW,rowOff" data-cap="width profile"></figure>
+
+<h3>Heading and derived angles</h3>
+<div class="eq"><var>&psi;</var> = atan2(<var>y</var><sub>3</sub> &minus; <var>y</var><sub>11</sub>,&ensp; <var>x</var><sub>3</sub> &minus; <var>x</var><sub>11</sub>)&emsp; (tail &rarr; T3/A1)</div>
+<div class="eq">head direction = atan2(<var>y</var><sub>0</sub> &minus; <var>y</var><sub>2</sub>,&ensp; <var>x</var><sub>0</sub> &minus; <var>x</var><sub>2</sub>),&emsp; head angle = wrap(head direction &minus; <var>&psi;</var>)</div>
+<p>The heading <var>&psi;</var> uses the body behind the thorax, so a head sweep does not change it; the centroid is the mean of all 12 points. Every position and speed measure is taken from the centroid.</p>
+<figure class="code" data-fn="heading,headDir,headAngle,centroid,initBody" data-cap="heading, centroid, initial pose"></figure>
+
+<!-- ===================================================================== -->
+<h2 id="d-peri">3. Peristalsis</h2>
+<h3>The relay</h3>
+<p>A wave is a chain of discrete activation events passed from segment to segment. When segment <var>i</var> fires at time <var>t</var>, its contraction starts, and with probability <span class="pk">rel</span> the next segment is scheduled to fire after the intersegmental lag <span class="pk">del</span>. Forward waves (<var>d</var> = +1) start at A8 and run forward to T1; backward waves (<var>d</var> = &minus;1) start at T1 and run back to A8. If the relay fails, the wave stops part-way along the body.</p>
+<div class="eq"><var>t</var><sub>on,<var>i</var>&minus;<var>d</var></sub> = <var>t</var><sub>on,<var>i</var></sub> + <span class="pk">del</span>&emsp; with probability <span class="pk">rel</span></div>
+<figure class="code" data-fn="fire" data-cap="relay"></figure>
+<figure class="code" data-block="for(var q=queue.length-1" data-cap="stepSim(): due relay events are fired at the start of each step"></figure>
+
+<h3>Contraction time course</h3>
+<p>Each contraction lasts <span class="pk">dur</span> and follows a raised cosine, peaking half-way through:</p>
+<div class="eq"><var>u</var> = (<var>t</var> &minus; <var>t</var><sub>on,<var>i</var></sub>) / <span class="pk">dur</span>,&emsp; <var>c</var><sub><var>i</var></sub>(<var>t</var>) = &frac12;(1 &minus; cos 2&pi;<var>u</var>) for 0 &le; <var>u</var> &le; 1, otherwise 0</div>
+<figure class="code" data-fn="contr" data-cap="contraction"></figure>
+<p>Contraction shortens the segment. Peak shortening is <span class="pk">amp</span> (fraction of rest length):</p>
+<div class="eq"><var>&ell;</var><sub><var>i</var></sub> = <var>s</var> (1 &minus; <span class="pk">amp</span> &middot; <var>c</var><sub><var>i</var></sub>)</div>
+<p>The ratio <span class="pk">dur</span>/<span class="pk">del</span> sets how many segments are contracting at the same time. At the current settings that is <b class="pv" data-expr="dur/del" data-dp="1"></b>.</p>
+
+<h3>Wave timing</h3>
+<p>A new wave can start only when <em>both</em> conditions hold:</p>
+<ul>
+  <li>the stride period has elapsed since the last wave began: <var>t</var> &ge; <var>t</var><sub>0</sub> + <span class="pk">per</span> &times; (1.35 if backward) &times; (0.85 during local search);</li>
+  <li>the previous wave has left the body, meaning its last segment has finished contracting: <var>t</var> &ge; <var>t</var><sub>0</sub> + 10&middot;<span class="pk">del</span> + <span class="pk">dur</span>.</li>
+</ul>
+<div class="eq"><var>T</var><sub>wave</sub> = max( <span class="pk">per</span> &middot; <var>f</var><sub>back</sub> &middot; <var>f</var><sub>search</sub>,&ensp; 10&middot;<span class="pk">del</span> + <span class="pk">dur</span> )</div>
+<p class="dnote">At the current settings the second term is <b class="pv" data-expr="10*del/1000+dur/1000" data-dp="2"></b>&nbsp;s and the stride period is <b class="pv" data-p="per"></b>&nbsp;s, so the actual interval between waves is <b class="pv" data-expr="Math.max(per,10*del/1000+dur/1000)" data-dp="2"></b>&nbsp;s. When the second term is larger, it sets the rhythm and the Stride period slider has no effect.</p>
+<figure class="code" data-fn="initWave" data-cap="wave start"></figure>
+<figure class="code" data-block="if(crawling &amp;&amp; t&gt;=nextInit" data-cap="stepSim(): wave gate, end of reversal, pause draw"></figure>
+
+<h3>Stride</h3>
+<p>Stride length is not a parameter. At each wave start the model measures how far the centroid moved since the previous wave start, and keeps a running mean of values between 0.005 and 3&nbsp;mm. This mean is the "Stride mm" readout. It is also used to convert a target speed into a stride period (see <a href="#d-sub">substrates</a>).</p>
+
+<!-- ===================================================================== -->
+<h2 id="d-contact">4. Substrate contact and body placement</h2>
+<p>This is the core of the model: how a change of shape becomes movement across the substrate.</p>
+
+<h3>Contact weights</h3>
+<p>Each midline point <var>j</var> has a contact weight <var>w</var><sub><var>j</var></sub>: how firmly it holds its position. A point is released while either neighbouring segment contracts (the protopodia lift into a travelling pocket):</p>
+<div class="eq"><var>w</var><sub><var>j</var></sub> = 1 &minus; <span class="pk">lift</span> &middot; max(<var>c</var><sub><var>j</var>&minus;1</sub>, <var>c</var><sub><var>j</var></sub>)</div>
+<p>During a head sweep the front of the body lifts. The fixed profile <code>CASTC</code> runs from 0.05 at the head to 1 from A2 backwards, and <span class="pk">hl</span> sets how much is released:</p>
+<div class="eq"><var>w</var><sub><var>j</var></sub> &larr; <var>w</var><sub><var>j</var></sub> &middot; (1 &minus; <span class="pk">hl</span> (1 &minus; CASTC<sub><var>j</var></sub>))&emsp; (cast only)</div>
+<p>The mouth hooks anchor the head as a forward wave reaches it:</p>
+<div class="eq"><var>w</var><sub>0</sub> &larr; <var>w</var><sub>0</sub> + <span class="pk">mh</span> &middot; <var>c</var><sub>0</sub>&emsp; (forward crawling only),&emsp; then <var>w</var><sub><var>j</var></sub> &larr; max(0.02, <var>w</var><sub><var>j</var></sub>)</div>
+<figure class="code" data-var="CASTC" data-cap="cast release profile, head to tail"></figure>
+<figure class="code" data-fn="contactWeights,kappaN" data-cap="contact weights"></figure>
+
+<h3>Placement: weighted rigid fit</h3>
+<p>The new shape <var>p</var><sub><var>j</var></sub> is built in the body's own frame. It is then placed in the arena by the rotation <var>R</var>(<var>&theta;</var>) and translation that best match the previous world positions <var>q</var><sub><var>j</var></sub>, weighting each point by its grip. This is the weighted Kabsch (Procrustes) problem in two dimensions:</p>
+<div class="eq">minimise&ensp; &Sigma;<sub><var>j</var></sub> <var>w</var><sub><var>j</var></sub> &#8214; <var>R</var>(<var>&theta;</var>)(<var>p</var><sub><var>j</var></sub> &minus; <var>p&#772;</var>) + <var>q&#772;</var> &minus; <var>q</var><sub><var>j</var></sub> &#8214;<sup>2</sup></div>
+<p>where <var>p&#772;</var>, <var>q&#772;</var> are the weighted centroids. With <var>r</var><sub><var>j</var></sub> = <var>p</var><sub><var>j</var></sub> &minus; <var>p&#772;</var> and <var>q&#8242;</var><sub><var>j</var></sub> = <var>q</var><sub><var>j</var></sub> &minus; <var>q&#772;</var>, the best rotation has a closed form:</p>
+<div class="eq"><var>a</var> = &Sigma; <var>w</var><sub><var>j</var></sub> (<var>r</var><sub><var>j</var></sub> &middot; <var>q&#8242;</var><sub><var>j</var></sub>),&emsp; <var>b</var> = &Sigma; <var>w</var><sub><var>j</var></sub> (<var>r</var><sub><var>j</var></sub> &times; <var>q&#8242;</var><sub><var>j</var></sub>),&emsp; <var>&theta;</var> = atan2(<var>b</var>, <var>a</var>)</div>
+<div class="eq"><var>x</var><sub><var>j</var></sub> = <var>q&#772;</var> + <var>R</var>(<var>&theta;</var>)(<var>p</var><sub><var>j</var></sub> &minus; <var>p&#772;</var>)</div>
+<p>Firmly gripping points barely move, and released points go wherever the new shape puts them. When the rear grips and the front is released, a contraction pulls the rear forward less than it pushes the front.</p>
+<figure class="code" data-fn="rigidFit,applyFit,solvePlace" data-cap="weighted rigid fit"></figure>
+
+<h3>Anisotropic friction</h3>
+<p>Denticles point backwards, so a larva slides forward much more easily than backward. After the first fit, the model checks each contact's displacement against the heading <var>u&#770;</var> = (cos <var>&psi;</var>, sin <var>&psi;</var>). Any contact that would slide backward has its weight multiplied by <span class="pk">mu</span>, and the fit is solved once more:</p>
+<div class="eq">if (<var>x</var><sub><var>j</var></sub> &minus; <var>q</var><sub><var>j</var></sub>) &middot; <var>u&#770;</var> &lt; 0 :&ensp; <var>w</var><sub><var>j</var></sub> &larr; <span class="pk">mu</span> &middot; <var>w</var><sub><var>j</var></sub>;&emsp; re-fit</div>
+<p>This asymmetry is what makes peristalsis move the body forward overall. With <span class="pk">mu</span> = 1, forward and backward slip cost the same and the body stays roughly in place. The denticles are fixed to the body, so the test always uses the body axis, including during backward crawling.</p>
+<figure class="code" data-range="var T=solvePlace(loc,wtsL,wtsR);|if(straightening &amp;&amp; state!=='cast'){" data-cap="stepSim(): placement, friction test, re-fit"></figure>
+
+<h3>Denticle rows and grip asymmetry (optional)</h3>
+<p>When <span class="pk">rsp</span> &gt; 0 the body has two contact rows, offset &plusmn;<span class="pk">rsp</span>&middot;BODYW<sub><var>j</var></sub> along the local normal <var>n&#770;</var><sub><var>j</var></sub> (from a central difference of the midline). The fit and the friction test then use all 24 row points. Each side of a segment can slip on its own, so a bend has a pivot.</p>
+<p><span class="pk">asym</span> lets the inside of a bend grip harder than the outside, in proportion to the normalised local bend <var>&kappa;</var><sub><var>j</var></sub> = <var>&beta;</var><sub><var>j</var></sub> / (<span class="pk">ca</span>/<span class="pk">ext</span>), clipped to &plusmn;1:</p>
+<div class="eq"><var>a</var> = clip(<span class="pk">asym</span> &middot; <var>&kappa;</var><sub><var>j</var></sub>, &plusmn;0.95),&emsp; <var>w</var><sub>L,<var>j</var></sub> = <var>w</var><sub><var>j</var></sub>(1 + <var>a</var>),&emsp; <var>w</var><sub>R,<var>j</var></sub> = <var>w</var><sub><var>j</var></sub>(1 &minus; <var>a</var>)</div>
+<p class="dnote">The code records this as <b>measured and refuted</b>: a 39:1 grip ratio changes the fitted rotation by less than 1%. It is kept as a test instrument and is off by default. With <span class="pk">rsp</span> = 0 the fit is bit-for-bit the original line-body fit.</p>
+<figure class="code" data-fn="normalAt,contactRows" data-cap="denticle rows"></figure>
+
+<!-- ===================================================================== -->
+<h2 id="d-bend">5. Body shape and bending</h2>
+<h3>Building the shape</h3>
+<p>The shape is built from the tail forwards. The tail sits at the origin, and each segment points in the direction given by the sum of all bend angles behind it:</p>
+<div class="eq"><var>&phi;</var><sub><var>i</var></sub> = &Sigma;<sub><var>b</var>=<var>i</var>+1</sub><sup>10</sup> <var>&beta;</var><sub><var>b</var></sub>,&emsp; <var>p</var><sub><var>i</var></sub> = <var>p</var><sub><var>i</var>+1</sub> + <var>&ell;</var><sub><var>i</var></sub>(cos <var>&phi;</var><sub><var>i</var></sub>, sin <var>&phi;</var><sub><var>i</var></sub>),&emsp; <var>p</var><sub>11</sub> = (0,0)</div>
+<p>Each bend angle is the sum of three parts: the commanded bend (head sweep, turn or weathervane) times its profile, plus postural curvature and wall deflection spread evenly over all 10 boundaries:</p>
+<div class="eq"><var>&beta;</var><sub><var>b</var></sub> = <var>B</var> &middot; <var>g</var>(<var>b</var>) + (<var>&kappa;</var><sub>post</sub> + <var>&kappa;</var><sub>wall</sub>) / 10</div>
+<figure class="code" data-fn="localShape" data-cap="body shape in its own frame"></figure>
+
+<h3>Bend profile</h3>
+<p>The commanded bend <var>B</var> is spread over the first <var>E</var> = <span class="pk">ext</span> boundaries with Gaussian weights, normalised to sum to 1:</p>
+<div class="eq">BW<sub><var>k</var></sub> &prop; exp( &minus;((<var>k</var> &minus; 1) / (0.52 <var>E</var>))<sup>2</sup> ),&emsp; <var>k</var> = 0 &hellip; <var>E</var>&minus;1,&emsp; &Sigma; BW<sub><var>k</var></sub> = 1</div>
+<p>The profile is shifted back along the body by <var>&delta;</var> (<code>bendPos</code>) and linearly interpolated: <var>g</var>(<var>b</var>) = BW(<var>b</var> &minus; 1 &minus; <var>&delta;</var>). With <span class="pk">bexit</span> = 1 (default), the part of the profile that has moved off the tail is simply lost, so rotation fades out smoothly. With <span class="pk">bexit</span> = 0 the remaining part is renormalised to sum to 1. This keeps the whole commanded bend on the body until the very end, which ends in a sharp kink at A7/A8.</p>
+<figure class="code" data-fn="bendProfile,bendAt" data-cap="bend profile and its position"></figure>
+
+<h3>What drives the commanded bend <var>B</var></h3>
+<ul>
+  <li><b>Cast</b> (head sweep): <var>B</var> = &sigma; &middot; <var>A</var><sub>cast</sub> &middot; &frac12;(1 &minus; cos 2&pi; min(<var>v</var>,1)), with <var>v</var> = 0.6&nbsp;(<var>t</var> &minus; <var>t</var><sub>sweep</sub>). One sweep lasts 1/0.6 &asymp; 1.67&nbsp;s and peaks at 0.83&nbsp;s. &sigma; = &plusmn;1 is the side. See <a href="#d-turn">turning</a>.</li>
+  <li><b>Turn straightening</b> (after an accepted sweep): <var>B</var> is held at its value at acceptance while the profile migrates backwards (below).</li>
+  <li><b>Run</b> (weathervane): a slow sinusoidal target with phase rate 0.9&nbsp;rad/s (period &asymp; 7&nbsp;s). <var>B</var> relaxes towards it at rate <span class="pk">sr</span>:
+    <div class="eq"><var>B</var><sub>target</sub> = <span class="pk">wv</span> &middot; sin <var>&omega;</var>,&emsp; <var>&omega;</var> &larr; <var>&omega;</var> + 0.9&nbsp;<var>dt</var>,&emsp; <var>B</var> &larr; <var>B</var> + (<var>B</var><sub>target</sub> &minus; <var>B</var>) min(1, <span class="pk">sr</span>&middot;<var>dt</var>)</div></li>
+  <li><b>Back / pause</b>: <var>B</var> relaxes to 0 at rate 1.5&middot;<span class="pk">sr</span>.</li>
+</ul>
+<figure class="code" data-block="if(state==='cast'){" data-cap="stepSim(): commanded bend by state"></figure>
+
+<h3>Bend migration: how a sweep becomes a turn</h3>
+<p>Once a sweep is accepted, the bend is held and its profile travels backwards along the body, and the body crawls through it. Rotation happens because the bend moves while the body advances and the placement fit re-orients the body each step. There are two ways to set how fast <var>&delta;</var> moves:</p>
+<div class="eq"><span class="pk">migV</span> &gt; 0:&ensp; <var>&delta;</var> &larr; <var>&delta;</var> + <span class="pk">migV</span>&middot;<var>dt</var>&emsp;&emsp; otherwise:&ensp; <var>&delta;</var> &larr; <var>&delta;</var> + <span class="pk">migK</span> &middot; &#8214;&Delta;centroid&#8214; / <var>s</var></div>
+<p>With the default <span class="pk">migV</span> = 0, migration is tied to distance crawled. A bend that stays fixed in the world corresponds to <span class="pk">migK</span> = 1 (follow-the-leader). Straightening ends when <var>&delta;</var> &gt; 10 + <var>E</var>; then <var>B</var> is set to 0.</p>
+<figure class="code" data-block="if(straightening &amp;&amp; state!=='cast'){" data-cap="stepSim(): bend migration"></figure>
+
+<h3>Postural curvature</h3>
+<p>Real crawling carries a slowly wandering, body-wide bend, so runs curve. This is an Ornstein&ndash;Uhlenbeck process <var>r</var> with correlation time <var>&tau;</var> = <span class="pk">cbt</span>. Its noise is uniform on [&minus;1,1], which has variance 1/3, so the noise amplitude is chosen to give a stationary standard deviation of exactly <span class="pk">cbs</span>:</p>
+<div class="eq"><var>r</var> &larr; <var>r</var> &minus; (<var>r</var>/<var>&tau;</var>) <var>dt</var> + <var>&sigma;</var> &radic;<var>dt</var> &middot; <var>U</var>(&minus;1,1),&emsp; <var>&sigma;</var> = <span class="pk">cbs</span> &radic;(6/<var>&tau;</var>)&emsp; &rArr;&emsp; SD(<var>r</var>) = <span class="pk">cbs</span></div>
+<p>A raw OU process is rough from step to step, and the placement step turned that roughness into spurious forward speed. So the curvature actually used is passed through a further first-order lag with time constant <var>&tau;</var>/8:</p>
+<div class="eq"><var>&kappa;</var><sub>post</sub> &larr; <var>&kappa;</var><sub>post</sub> + (<var>r</var> &minus; <var>&kappa;</var><sub>post</sub>) min(1, <var>dt</var> / (0.125 <var>&tau;</var>))</div>
+<figure class="code" data-range="if(P.cbs&gt;0 &amp;&amp; P.cbt&gt;0.01){|var cPre=centroid();" data-cap="stepSim(): postural curvature"></figure>
+
+<h3>Wall deflection</h3>
+<p>While the head pushes into a wall (inward normal <var>n&#770;</var>), a bend builds toward the nearer of the two wall tangents. Its size scales with how head-on the approach is:</p>
+<div class="eq">drive = &minus;<var>u&#770;</var>&middot;<var>n&#770;</var>,&emsp; <var>&kappa;</var><sub>target</sub> = <span class="pk">wdf</span> &middot; min(1, drive) &middot; sign(nearer tangent),&emsp; <var>&kappa;</var><sub>wall</sub> relaxes to it with &tau; = 0.3&nbsp;s</div>
+<p>Off by default (<span class="pk">wdf</span> = 0).</p>
+<figure class="code" data-range="var wdTgt=0;|if(P.cbs&gt;0 &amp;&amp; P.cbt&gt;0.01){" data-cap="stepSim(): wall deflection"></figure>
+
+<!-- ===================================================================== -->
+<h2 id="d-turn">6. Turning</h2>
+<h3>When a turn starts</h3>
+<p>Run durations are exponential. When a run ends (and Spontaneous is on), the larva starts casting:</p>
+<div class="eq"><var>T</var><sub>run</sub> ~ Exp( mean = <span class="pk">rt</span> &times; (<span class="pk">lsi</span> during local search) &times; (0.3 after the leaving decision) )</div>
+<figure class="code" data-fn="runLen,inLS" data-cap="run length"></figure>
+
+<h3>Head sweeps</h3>
+<p>Entering a cast clears the relay queue, so peristalsis stops and the larva sweeps its head in place. At the peak of each sweep (<var>v</var> = 0.5) the sweep is judged:</p>
+<ul>
+  <li>near a wall it is acceptable only if the new direction <var>&psi;</var> + <var>B</var> points away from the wall (component along the inward normal &gt; 0.3);</li>
+  <li>an acceptable sweep is accepted with probability <span class="pk">acc</span>, or always on the 5th sweep.</li>
+</ul>
+<p>If the sweep is not accepted by the time it finishes, the next one goes to the other side and is larger:</p>
+<div class="eq"><var>A</var><sub>1</sub> = <span class="pk">ca</span>,&emsp; <var>A</var><sub><var>k</var>+1</sub> = min(<var>A</var><sub><var>k</var></sub> &middot; <span class="pk">cg</span>, 145&deg;),&emsp; side alternates</div>
+<p>Near a wall, from the 4th sweep on the side is set by the wall rule (below), and after 8 sweeps the larva backs up for 2 waves.</p>
+<figure class="code" data-fn="enterCast,acceptSweep" data-cap="cast entry and acceptance"></figure>
+
+<h3>Which side the first sweep goes</h3>
+<p><code>chooseDir</code> checks these rules in order; the first that applies wins:</p>
+<ol class="dsteps">
+  <li><b>Leaving decided</b> (patch arenas): turn toward the direction pointing out from the patch centre.</li>
+  <li><b>Local search</b>: with probability <span class="pk">lsb</span>, turn toward the point where the larva left the patch.</li>
+  <li><b>Patch edge</b>: turn toward the nearest food patch centre with probability <var>p</var><sub>in</sub>, which peaks at the patch edge (distance <var>d</var> from centre, radius <var>R</var>):
+    <div class="eq"><var>p</var><sub>in</sub> = 0.5 + (<span class="pk">pb</span> &minus; 0.5) exp( &minus;((<var>d</var> &minus; <var>R</var>) / (0.45 <var>R</var>))<sup>2</sup> )</div>
+    This is 0 in uniform arenas, on agar-only patches, and once leaving is decided.</li>
+  <li><b>Handedness</b>: +1 with probability <span class="pk">hd</span>, otherwise &minus;1.</li>
+</ol>
+<p class="dnote">If the patch-edge draw fails, the code falls through to handedness rather than turning outward. So the real chance of turning inward at the edge is <var>p</var><sub>in</sub> + (1 &minus; <var>p</var><sub>in</sub>) &times; P(handedness happens to point inward). That is about 0.975 at <span class="pk">pb</span> = 0.95 and <span class="pk">hd</span> = 0.5.</p>
+<p>"Turn toward angle <var>&alpha;</var>" means side = sign(wrap(<var>&alpha;</var> &minus; <var>&psi;</var>)).</p>
+<figure class="code" data-fn="chooseDir,inwardP" data-cap="turn direction"></figure>
+
+<h3>Turn scoring</h3>
+<p>The turn angle is the heading change from the start of casting to the end of straightening (or 25&nbsp;s after acceptance, whichever comes first): &Delta;<var>&psi;</var> = wrap(<var>&psi;</var><sub>end</sub> &minus; <var>&psi;</var><sub>cast start</sub>). Each turn is logged with the number of sweeps and the substrate.</p>
+<figure class="code" data-range="if(pend &amp;&amp; (!straightening|var c=centroid(), dcx=" data-cap="stepSim(): turn scoring and spontaneous turn trigger"></figure>
+
+<!-- ===================================================================== -->
+<h2 id="d-pause">7. Pauses</h2>
+<p>Each time a forward wave starts, the larva may pause instead, for an exponentially distributed time with mean 1.5&nbsp;s. The per-wave probability is chosen so the expected fraction of time spent paused equals <span class="pk">pf</span>. With wave interval <var>T</var> = <span class="pk">per</span>, the paused fraction is 1.5<var>p</var> / (<var>T</var> + 1.5<var>p</var>) = <var>f</var>, which gives:</p>
+<div class="eq"><var>p</var><sub>pause</sub> = min( 1,&ensp; <span class="pk">pf</span> &middot; <span class="pk">per</span> / (1.5 (1 &minus; <span class="pk">pf</span>)) ),&emsp; duration ~ Exp(1.5&nbsp;s)</div>
+<p class="dnote">This uses <span class="pk">per</span> as the wave interval. When the wave-length gate makes the interval longer (see <a href="#d-peri">wave timing</a>), the realised pause fraction is lower than <span class="pk">pf</span>.</p>
+<figure class="code" data-fn="pauseProb" data-cap="pause probability"></figure>
+
+<!-- ===================================================================== -->
+<h2 id="d-wall">8. Arena boundary</h2>
+<h3>Contact geometry</h3>
+<ul>
+  <li><b>Collision</b>: if any point is within 0.22&nbsp;mm of a wall, the whole body is shifted back in (largest penetration on each axis).</li>
+  <li><b>Near wall</b> (<code>nearWall</code>): any point within 0.30&nbsp;mm; returns that wall's inward normal.</li>
+  <li><b>Head touch</b> (<code>intoWall</code>): the head point is within 0.5&nbsp;mm of a wall <em>and</em> pointing into it (head direction &middot; inward normal &lt; &minus;0.15). A tail near the wall, or crawling along it, is not a touch.</li>
+</ul>
+<figure class="code" data-fn="nearWall,intoWall,awayDir,slideDir,wallDir" data-cap="wall tests and escape side"></figure>
+
+<h3>Response</h3>
+<p>When the body is pushed back from the wall during a run, the head is touching, and the 2&nbsp;s refractory period has passed, the response depends on the current habituation tier:</p>
+<table class="dtab">
+  <thead><tr><th>Tier</th><th>Habituation <var>H</var></th><th>Response</th></tr></thead>
+  <tbody>
+    <tr><td>3</td><td>&gt; 0.66</td><td>Reverse: back up 2 waves. Then cast with probability <span class="pk">rvp</span>, otherwise resume running</td></tr>
+    <tr><td>2</td><td>0.33&ndash;0.66</td><td>Cast, first sweep toward the escape side</td></tr>
+    <tr><td>1</td><td>0.12&ndash;0.33</td><td>Pause, Exp(0.8&nbsp;s)</td></tr>
+    <tr><td>0</td><td>&le; 0.12</td><td>None: keep crawling along the wall</td></tr>
+  </tbody>
+</table>
+<p>The "Stop &amp; cast" header button caps the response at tier 2. Escape side: with <span class="pk">wdf</span> = 0, turn toward the side of the wall's inward normal (away from the wall); with <span class="pk">wdf</span> &gt; 0, turn toward the nearer wall tangent (slide along it).</p>
+<p class="dnote"><span class="pk">rvp</span> is flagged in the code as <b>guessed, not measured</b>: tracking fails at the boundary, so no data constrain it.</p>
+<figure class="code" data-range="var hitting0=intoWall();|/* habituation: contact drives" data-cap="stepSim(): push-out and response"></figure>
+
+<h3>Habituation</h3>
+<p><var>H</var> &isin; [0,1] starts at 1. It decays while the head is touching and recovers once clear. Recovery speeds up with the number of contacts <var>n</var>:</p>
+<div class="eq">touching:&ensp; <var>H</var> &larr; <var>H</var> &middot; e<sup>&minus;<var>dt</var>/<span class="pk">tdes</span></sup>;&emsp; every 0.5&nbsp;s of continuous touch: <var>n</var> &larr; <var>n</var>+1, <var>H</var> &larr; <var>H</var> &middot; e<sup>&minus;<span class="pk">cdose</span>/<span class="pk">tdes</span></sup></div>
+<div class="eq">clear:&ensp; <var>&tau;</var>&#8242; = max(0.05, <span class="pk">tres</span> &middot; e<sup>&minus;<span class="pk">rgain</span>&middot;max(0, <var>n</var>&minus;1)</sup>),&emsp; <var>H</var> &larr; <var>H</var> + (1 &minus; <var>H</var>) min(1, <var>dt</var>/<var>&tau;</var>&#8242;)</div>
+<p class="dnote">The equations above describe the code as written. The comments say the dose is given per touch and that <var>n</var> resets after 8&nbsp;s clear. Because <code>lastClear</code> is updated on every clear step, two things differ from that. First, the dose is applied once per 0.5&nbsp;s of <em>continuous</em> contact, so touches shorter than 0.5&nbsp;s get none. Second, the 8&nbsp;s reset never fires, so <var>n</var> keeps growing over a run and recovery becomes faster and faster. See <a href="#d-notes">notes</a>.</p>
+<p>The four genotype buttons (WT, rut, dnc, cam0) set (<span class="pk">tdes</span>, <span class="pk">tres</span>) to (18.9, 5.3), (5.2, 3.6), (14.3, 9.8) and (25.6, 6.5) s.</p>
+<figure class="code" data-range="var hitting=hitting0;|if(nearWall()){" data-cap="stepSim(): habituation"></figure>
+
+<!-- ===================================================================== -->
+<h2 id="d-sub">9. Substrates and food patches</h2>
+<h3>Arena layouts</h3>
+<p>The arena is <span class="pk">aw</span> &times; <span class="pk">ah</span>&nbsp;mm. The patch radius is <var>R</var> = min(<span class="pk">pr</span>, 0.30&middot;min(<var>W</var>,<var>H</var>)). Patch centres:</p>
+<ul>
+  <li><b>1 patch</b>: arena centre.</li>
+  <li><b>2 patches</b>: (<var>W</var>/2 &plusmn; <var>d<sub>x</sub></var>, <var>H</var>/2), <var>d<sub>x</sub></var> = min(0.26<var>W</var>, <var>W</var>/2 &minus; <var>R</var> &minus; 1).</li>
+  <li><b>4 patches</b>: (<var>W</var>/2 &plusmn; <var>o<sub>x</sub></var>, <var>H</var>/2 &plusmn; <var>o<sub>y</sub></var>), <var>o<sub>x</sub></var> = min(0.24<var>W</var>, <var>W</var>/2&minus;<var>R</var>&minus;1), <var>o<sub>y</sub></var> = min(0.26<var>H</var>, <var>H</var>/2&minus;<var>R</var>&minus;1).</li>
+  <li><b>Mixed</b>: alternate patches carry the other food (yeast &harr; sucrose), diagonally in the 4-patch layout.</li>
+</ul>
+<p>The local substrate is the food of the nearest patch if the centroid is inside it, otherwise agar.</p>
+<figure class="code" data-fn="patchR,altSub,patches,localSub" data-cap="patch geometry"></figure>
+
+<h3>Measured kinematics by substrate</h3>
+<p>Target speed and turn rate come from the means measured by Wosniack et al. 2022:</p>
+<table class="dtab num">
+  <thead><tr><th></th><th>agar</th><th>sucrose</th><th>yeast</th></tr></thead>
+  <tbody>
+    <tr><td>Rover &mdash; speed mm/s, turns/min</td><td>0.84, 2.65</td><td>0.68, 2.44</td><td>0.37, 2.00</td></tr>
+    <tr><td>Sitter &mdash; speed mm/s, turns/min</td><td>0.96, 2.79</td><td>0.68, 2.13</td><td>0.31, 1.71</td></tr>
+  </tbody>
+</table>
+<figure class="code" data-var="PRESET,QUAL" data-cap="preset table and food quality"></figure>
+
+<h3>Turning a target speed into model settings</h3>
+<p>Whenever the local substrate changes, <code>applyLocal</code> sets three sliders (shown in amber) so the larva's mean speed matches the target <var>v</var>. With measured stride <var>S</var> (0.61&nbsp;mm before any stride has been measured) and minimum wave span <var>T</var><sub>min</sub> = 10&middot;<span class="pk">del</span>:</p>
+<div class="eq"><span class="pk">per</span> = clamp(<var>S</var>/<var>v</var>,&ensp; <var>T</var><sub>min</sub>,&ensp; 1.6&nbsp;s),&emsp; <span class="pk">pf</span> = clamp(1 &minus; <var>v</var> / (<var>S</var>/<span class="pk">per</span>),&ensp; 0,&ensp; 0.7),&emsp; <span class="pk">rt</span> = 60 / turns-per-min</div>
+<p>If the stride period alone can't slow the larva enough (it hits the 1.6&nbsp;s cap), the remaining slow-down is made up with pauses. The visit counter goes up each time the larva steps onto a food different from where it was.</p>
+<figure class="code" data-fn="applyLocal" data-cap="substrate-dependent settings"></figure>
+<p>Food quality <var>Q</var> is agar 0, sucrose 0.5, yeast 1. It is used by the leaving decision and by local search.</p>
+
+<!-- ===================================================================== -->
+<h2 id="d-leave">10. Patch leaving and comparative memory</h2>
+<p>How long the larva stays on a patch is not set directly. On food, a decision variable <var>x</var> accumulates evidence for leaving (a leaky drift&ndash;diffusion, Ornstein&ndash;Uhlenbeck process, kept at or above 0). The larva decides to leave when <var>x</var> reaches 1:</p>
+<div class="eq"><var>x</var> &larr; max(0,&ensp; <var>x</var> + (<var>&mu;</var><sub>eff</sub> &minus; <span class="pk">oulk</span>&middot;<var>x</var>) <var>dt</var> + <span class="pk">ounz</span> &radic;<var>dt</var> &middot; <var>U</var>(&minus;1,1))</div>
+<div class="eq"><var>&mu;</var><sub>eff</sub> = max( 10<sup>&minus;4</sup>,&ensp; <span class="pk">oumu</span> (1 &minus; <span class="pk">ouq</span>&middot;<var>Q</var>) &middot; (1 + <span class="pk">ocmp</span> &middot; <var>m</var>(<var>t</var>) &middot; (<var>Q</var><sub>mem</sub> &minus; <var>Q</var>)) )</div>
+<div class="eq"><var>m</var>(<var>t</var>) = e<sup>&minus;(<var>t</var> &minus; <var>t</var><sub>mem</sub>)/<span class="pk">tmem</span></sup>&emsp; (0 before the first visit)</div>
+<ul>
+  <li><b>Quality</b>: better food lowers the drift, so the larva stays longer.</li>
+  <li><b>Comparison</b>: the drift is scaled by how the current patch compares with the remembered one. After a poorer patch (<var>Q</var><sub>mem</sub> &lt; <var>Q</var>) drift falls and the larva stays longer; after a better one it rises. Equal qualities give no effect, which is the published negative control.</li>
+  <li>The uniform noise has variance 1/3, so the effective diffusion amplitude is <span class="pk">ounz</span>/&radic;3.</li>
+</ul>
+<p>Once <var>x</var> &ge; 1 (<code>leaving</code>): the inward edge bias switches off, turns aim out of the patch, and runs are 0.3&times; as long.</p>
+<figure class="code" data-fn="memW,ouDrift" data-cap="memory weight and drift"></figure>
+<figure class="code" data-range="/* evidence accumulation, only while|if(curLocal!=='agar' &amp;&amp; mode!=='homog') timeIn+=dt;" data-cap="stepSim(): accumulator and visit bookkeeping"></figure>
+
+<h3>Visits</h3>
+<ul>
+  <li>A visit starts when the centroid first stands on a food patch, and records which patch.</li>
+  <li>Stepping off starts a pending exit, labelled <b>decision</b> if <var>x</var> had reached 1, otherwise <b>wander</b>.</li>
+  <li>Returning to the <em>same</em> patch cancels the pending exit. Entering a <em>different</em> patch closes the old visit.</li>
+  <li>A pending exit becomes final once the centroid is more than <span class="pk">vmerge</span>&nbsp;mm outside its patch edge, or <span class="pk">vtime</span>&nbsp;s have passed off it.</li>
+  <li>Closing a visit records residence = exit time &minus; entry time, then sets the memory <var>Q</var><sub>mem</sub> to this patch's quality, <var>t</var><sub>mem</sub> = now, and resets <var>x</var>.</li>
+</ul>
+<p>Visit log columns: entry time, residence, substrate, quality, previous quality, memory weight, exit type, and time from entry to the leaving decision. The last column measures the decision alone, without the walk out of the patch.</p>
+<figure class="code" data-fn="closeVisit" data-cap="closing a visit"></figure>
+
+<!-- ===================================================================== -->
+<h2 id="d-ls">11. Local search</h2>
+<p>When the larva steps from food onto agar (and <span class="pk">lsd</span> &gt; 0), it records the exit point and starts a period of local search. The period is longer after better food:</p>
+<div class="eq"><var>T</var><sub>LS</sub> = <span class="pk">lsd</span> &middot; (1 &minus; <span class="pk">lsq</span> + <span class="pk">lsq</span>&middot;<var>Q</var>),&emsp; <span class="pk">lsq</span> = 0.6 (no slider)</div>
+<p>During local search:</p>
+<ul>
+  <li>mean run length &times; <span class="pk">lsi</span> (more turns);</li>
+  <li>wave interval &times; 0.85 (faster crawling);</li>
+  <li>with probability <span class="pk">lsb</span> a turn aims back at the exit point (default 0: the code notes that aiming lowered patch residence).</li>
+</ul>
+<p>Search ends early on reaching food again.</p>
+<figure class="code" data-range="if(curLocal &amp;&amp; curLocal!=='agar' &amp;&amp; s==='agar' &amp;&amp; P.lsd&gt;0){|curLocal=s;" data-cap="applyLocal(): starting local search"></figure>
+
+<!-- ===================================================================== -->
+<h2 id="d-out">12. Measured outputs</h2>
+<table class="dtab">
+  <thead><tr><th>Readout</th><th>Definition</th></tr></thead>
+  <tbody>
+    <tr><td>Speed mm/s</td><td>Exponential moving average of centroid speed with time constant 2&nbsp;s: <var>v</var> &larr; <var>v</var> + (&#8214;&Delta;<var>c</var>&#8214;/<var>dt</var> &minus; <var>v</var>) min(1, 0.5&nbsp;<var>dt</var>)</td></tr>
+    <tr><td>Target</td><td>Preset speed for the current genotype and substrate</td></tr>
+    <tr><td>Stride mm</td><td>Running mean of centroid displacement per wave</td></tr>
+    <tr><td>Path mm</td><td>Sum of centroid step lengths</td></tr>
+    <tr><td>In patch %</td><td>Time with centroid on food &divide; total time</td></tr>
+    <tr><td>Border %</td><td>Time with centroid within <span class="pk">bw</span> of any wall &divide; total time</td></tr>
+    <tr><td>Visits / Residence s</td><td>Number of food entries; mean residence of closed visits</td></tr>
+    <tr><td>Leave evid. / Decided %</td><td>Accumulator <var>x</var> (&rarr;out once leaving); share of closed visits that ended by decision</td></tr>
+    <tr><td>Wall resp</td><td>Current tier and habituation <var>H</var></td></tr>
+    <tr><td>Head angle</td><td>Head direction &minus; heading; marked * above 37&deg; (cast threshold, Davies et al. 2015)</td></tr>
+    <tr><td>Max bend</td><td>Largest |<var>&beta;</var><sub><var>b</var></sub>|</td></tr>
+    <tr><td>Turns/min, Mean |turn|</td><td>From scored turns (shown after 30&nbsp;s)</td></tr>
+  </tbody>
+</table>
+<p>Replay keeps one frame every 0.05&nbsp;s of simulated time, up to 60&nbsp;000 frames (50&nbsp;min). Each frame holds state, substrate, all 12 points, contractions, contact weights, bends and every readout above.</p>
+<figure class="code" data-range="/* border occupancy|if(pend &amp;&amp; (!straightening" data-cap="stepSim(): border occupancy"></figure>
+<figure class="code" data-range="var c=centroid(), dcx=|if(dd&gt;0.0002){" data-cap="stepSim(): path length and speed"></figure>
+
+<!-- ===================================================================== -->
+<h2 id="d-params">13. Parameter reference</h2>
+<p>Built from the sliders on this page, so names, defaults and ranges are always current. "Default" is the value written in the page; "Now" is the slider setting. <span class="flag auto">auto</span> = set from the local substrate every time it changes; <span class="flag guess">guess</span> = not measured; <span class="flag refuted">refuted</span> = tested and found not to work as hoped. The description is the slider's tooltip, which carries the literature source.</p>
+<div id="d_params"></div>
+
+<!-- ===================================================================== -->
+<h2 id="d-notes">14. Notes from reading the code</h2>
+<p>Places where the code, comments or tooltips disagree, or where behaviour is not obvious. None of these have been changed.</p>
+<ol class="dsteps">
+  <li><b>Wave interval vs stride period.</b> A wave can only start once the previous one has left the body, after 10&middot;<span class="pk">del</span> + <span class="pk">dur</span> (1.5&nbsp;s at defaults). <code>applyLocal</code> limits the stride period from below using 10&middot;<span class="pk">del</span> only (0.9&nbsp;s), without <span class="pk">dur</span>. On agar it sets the period to that 0.9&nbsp;s floor (the slider's written value of 1.07 is replaced as soon as the page loads). So on agar and sucrose the gate, not "Stride period", sets the crawl rhythm: waves come every 1.5&nbsp;s, not every 0.9&nbsp;s. The speed matching and the pause fraction are both computed for a period that is never reached.</li>
+  <li><b>Habituation counter never resets.</b> In the habituation block <code>lastClear</code> is set on every clear step, so <code>t-lastClear&gt;8</code> is never true. <var>n</var> grows for the whole run, and recovery gets faster with every contact ever made. The same detail means the "contact dose" is given every 0.5&nbsp;s of continuous contact rather than once per touch.</li>
+  <li><b>Local search tooltips.</b> "Search int" says the stride period is divided by <span class="pk">lsi</span>. In the code the stride period is multiplied by a fixed 0.85; <span class="pk">lsi</span> affects run length only. The "Local search" tooltip says turns aim back at the exit point. That is controlled by <span class="pk">lsb</span>, which defaults to 0.</li>
+  <li><b>Hidden parameter.</b> <span class="pk">lsq</span> = 0.6 (how much patch quality lengthens local search) has no slider and cannot be set from the batch runner.</li>
+  <li><b>Inward bias is stronger than <span class="pk">pb</span>.</b> A failed inward draw falls back to handedness, which points inward about half the time (see <a href="#d-turn">turning</a>).</li>
+  <li><b>Memory time stamp.</b> <var>t</var><sub>mem</sub> is set when the visit <em>closes</em>, which can be up to <span class="pk">vtime</span> after the larva actually left. The memory therefore starts decaying a little later than the departure.</li>
+  <li><b>Markup.</b> The "Handedness H" label has a misplaced <code>&lt;span&gt;</code> inside its tooltip, so the tooltip text shows "&lt;span&gt;". Some value labels (e.g. Contract. amp, Contract. dur) are written with placeholder numbers that the script overwrites on load. This is harmless.</li>
+</ol>
+
+  </article>
   </div>
 </section>
 
@@ -3535,5 +3972,215 @@ window.addEventListener('resize', function(){ if(!$('batchui').hidden) drawOverl
 $('b_note').textContent='click a row to draw it; double-click to load it into the live view';
 })();
 </script>
+<script id="docsjs">
+/* ===========================================================================
+   Documentation view.
+
+   Code excerpts are cut from the <script id="model"> source at the moment the
+   view opens, so they cannot go stale when the model changes. Each figure
+   says what to cut:
+     data-fn="a,b"        whole function declarations
+     data-var="A,B"       top-level var statements
+     data-block="anchor"  the {...} block starting at anchor, plus else-chains
+     data-range="a|b"     from the line holding a up to the line holding b
+   An anchor that is no longer found is shown as a warning, not hidden.
+   =========================================================================== */
+(function(){
+'use strict';
+var SRC=document.getElementById('model').textContent;
+var built=false;
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function lineStart(i){ return SRC.lastIndexOf('\n',i-1)+1; }
+function lineEnd(i){ var e=SRC.indexOf('\n',i); return e<0?SRC.length:e; }
+
+/* index of the brace closing the one at i, skipping strings and comments */
+function closeOf(i){
+  var d=0, n=SRC.length;
+  for(var k=i;k<n;k++){
+    var ch=SRC[k], nx=SRC[k+1];
+    if(ch==='/'&&nx==='/'){ k=lineEnd(k); continue; }
+    if(ch==='/'&&nx==='*'){ k=SRC.indexOf('*/',k+2); if(k<0) return -1; k++; continue; }
+    if(ch==='"'||ch==="'"){ for(k++;k<n&&SRC[k]!==ch;k++) if(SRC[k]==='\\') k++; continue; }
+    if(ch==='{') d++;
+    else if(ch==='}'){ d--; if(d===0) return k; }
+  }
+  return -1;
+}
+/* end of a statement: the first ; at bracket depth 0 */
+function stmtEnd(i){
+  var d=0, n=SRC.length;
+  for(var k=i;k<n;k++){
+    var ch=SRC[k], nx=SRC[k+1];
+    if(ch==='/'&&nx==='/'){ k=lineEnd(k); continue; }
+    if(ch==='/'&&nx==='*'){ k=SRC.indexOf('*/',k+2); if(k<0) return -1; k++; continue; }
+    if(ch==='"'||ch==="'"){ for(k++;k<n&&SRC[k]!==ch;k++) if(SRC[k]==='\\') k++; continue; }
+    if('([{'.indexOf(ch)>=0) d++;
+    else if(')]}'.indexOf(ch)>=0) d--;
+    else if(ch===';'&&d===0) return k;
+  }
+  return -1;
+}
+function cutFn(name){
+  var m=new RegExp('(^|\\n)[ \\t]*function '+name+'\\(').exec(SRC);
+  if(!m) return null;
+  var s=m.index+m[1].length, o=SRC.indexOf('{',s), e=closeOf(o);
+  return e<0?null:SRC.slice(lineStart(s),e+1);
+}
+function cutVar(name){
+  var m=new RegExp('(^|\\n)[ \\t]*var '+name+'\\s*=').exec(SRC);
+  if(!m) return null;
+  var s=m.index+m[1].length, e=stmtEnd(s);
+  return e<0?null:SRC.slice(lineStart(s),lineEnd(e));
+}
+function cutBlock(anchor){
+  var s=SRC.indexOf(anchor); if(s<0) return null;
+  var e=closeOf(SRC.indexOf('{',s));
+  while(e>0){
+    var rest=SRC.slice(e+1), m=/^\s*else\b/.exec(rest);
+    if(!m) break;
+    e=closeOf(SRC.indexOf('{',e+1+m[0].length));
+  }
+  return e<0?null:SRC.slice(lineStart(s),e+1);
+}
+function cutRange(spec){
+  var p=spec.indexOf('|'), a=spec.slice(0,p), b=spec.slice(p+1);
+  var s=SRC.indexOf(a); if(s<0) return null;
+  var e=SRC.indexOf(b,s+a.length); if(e<0) return null;
+  return SRC.slice(lineStart(s),lineStart(e)).replace(/\s+$/,'');
+}
+function dedent(code){
+  var lines=code.split('\n'), min=1e9;
+  lines.forEach(function(l){ if(l.trim()){ var m=/^[ \t]*/.exec(l)[0].length; if(m<min) min=m; } });
+  return lines.map(function(l){ return l.slice(Math.min(min,/^[ \t]*/.exec(l)[0].length)); }).join('\n');
+}
+/* minimal JavaScript highlighting: comments, strings, keywords, numbers */
+var TOK=/(\/\*[\s\S]*?\*\/|\/\/[^\n]*)|('(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*")|\b(var|function|return|if|else|for|while|new|true|false|null|typeof|continue|break)\b|(\b\d+(?:\.\d+)?(?:e-?\d+)?\b)/g;
+function hl(code){
+  var out='', last=0, m; TOK.lastIndex=0;
+  while((m=TOK.exec(code))){
+    out+=esc(code.slice(last,m.index));
+    var cls=m[1]?'hc':m[2]?'hs':m[3]?'hk':'hn';
+    out+='<span class="'+cls+'">'+esc(m[0])+'</span>';
+    last=TOK.lastIndex;
+  }
+  return out+esc(code.slice(last));
+}
+function fillCode(fig){
+  var parts=[], missing=[], what=[];
+  function add(txt,label){ if(txt) parts.push(dedent(txt)); else missing.push(label); }
+  var a;
+  if((a=fig.getAttribute('data-var'))) a.split(',').forEach(function(n){ what.push(n); add(cutVar(n),'var '+n); });
+  if((a=fig.getAttribute('data-fn')))  a.split(',').forEach(function(n){ what.push(n+'()'); add(cutFn(n),'function '+n); });
+  if((a=fig.getAttribute('data-block'))) add(cutBlock(a),'block "'+a+'"');
+  if((a=fig.getAttribute('data-range'))) add(cutRange(a),'range "'+a+'"');
+  var cap=fig.getAttribute('data-cap')||'';
+  var src=what.length?what.join(', '):'excerpt';
+  var body=parts.map(hl).join('\n\n');
+  if(missing.length){
+    fig.classList.add('miss');
+    body+=(body?'\n\n':'')+esc('[not found in the current model source: '+missing.join('; ')+
+      ' - the code has changed since this page was written]');
+  }
+  fig.innerHTML='<figcaption><b>'+esc(cap)+'</b><span>'+esc(src)+' &middot; live from model source</span></figcaption>'+
+    '<pre><code>'+body+'</code></pre>';
+}
+
+/* ---- parameter table, read from the sliders ------------------------------ */
+var UNIT={per:'s',del:'ms',dur:'ms',amp:'fraction',rel:'prob.',spd:'× real time',
+  lift:'fraction',mu:'ratio',hl:'fraction',ext:'boundaries',migK:'boundaries / seg. length',
+  bexit:'switch',migV:'boundaries / s',sr:'1/s',cbs:'deg',rvp:'prob.',mh:'gain',wdf:'deg',
+  cbt:'s',rsp:'mm',asym:'gain',ca:'deg',cg:'× per sweep',acc:'prob.',rt:'s',pf:'fraction',
+  wv:'deg',pb:'prob.',hd:'prob.',tdes:'s',tres:'s',cdose:'s',rgain:'per contact',vmerge:'mm',
+  vtime:'s',bw:'mm',lsd:'s',lsb:'prob.',lsi:'×',pr:'mm',aw:'mm',ah:'mm',tr:'opacity',
+  seed:'integer',oumu:'1/s',ouq:'–',oulk:'1/s',ounz:'1/√s',ocmp:'–',tmem:'s'};
+var DISPLAY={spd:1,tr:1};
+function buildParams(){
+  var html='<table class="dtab ptab"><thead><tr><th>Slider</th><th>Key</th><th>Default</th>'+
+    '<th>Now</th><th>Range</th><th>Unit</th><th>Description and source</th></tr></thead><tbody>';
+  var panels=document.querySelectorAll('#ctl .panel');
+  for(var p=0;p<panels.length;p++){
+    var h=panels[p].querySelector('h2');
+    html+='<tr class="grp"><td colspan="7">'+esc(h?h.textContent:'')+'</td></tr>';
+    var rows=panels[p].querySelectorAll('.row');
+    for(var r=0;r<rows.length;r++){
+      var inp=rows[r].querySelector('input[type=range]'), lab=rows[r].querySelector('label');
+      if(!inp||!lab) continue;
+      var id=inp.id, name=lab.querySelector('span'), title=lab.getAttribute('title')||'';
+      var flags='';
+      if(rows[r].classList.contains('auto')) flags+='<span class="flag auto">auto</span>';
+      if(/GUESS/i.test(title)) flags+='<span class="flag guess">guess</span>';
+      if(/REFUTED/.test(title)) flags+='<span class="flag refuted">refuted</span>';
+      if(DISPLAY[id]) flags+='<span class="flag display">display only</span>';
+      var chg=parseFloat(inp.value)!==parseFloat(inp.defaultValue);
+      html+='<tr'+(chg?' class="chg"':'')+'><td class="k">'+esc(name?name.textContent:id)+'<br>'+flags+'</td>'+
+        '<td class="k"><span class="pk">'+id+'</span></td>'+
+        '<td class="n">'+esc(inp.defaultValue)+'</td><td class="n now">'+esc(inp.value)+'</td>'+
+        '<td class="n">'+esc(inp.min)+' &ndash; '+esc(inp.max)+'</td>'+
+        '<td class="k">'+esc(UNIT[id]||'')+'</td><td class="d">'+esc(title)+'</td></tr>';
+    }
+  }
+  html+='<tr class="grp"><td colspan="7">No slider</td></tr>'+
+    '<tr><td class="k">Local search quality weight<br><span class="flag guess">fixed</span></td><td class="k"><span class="pk">lsq</span></td>'+
+    '<td class="n">0.6</td><td class="n now">0.6</td><td class="n">&ndash;</td><td class="k">fraction</td>'+
+    '<td class="d">Share of local-search duration that scales with the quality of the patch just left: T = lsd&middot;(1 &minus; lsq + lsq&middot;Q). Set in code only.</td></tr>';
+  $('d_params').innerHTML=html+'</tbody></table>';
+}
+
+/* live values quoted in the text */
+function sliderVal(id){ var e=$(id); return e?parseFloat(e.value):NaN; }
+function fillValues(){
+  var els=document.querySelectorAll('#docs .pv');
+  for(var i=0;i<els.length;i++){
+    var p=els[i].getAttribute('data-p'), ex=els[i].getAttribute('data-expr'),
+        dp=+(els[i].getAttribute('data-dp')||2), v;
+    if(p) v=sliderVal(p);
+    else {
+      var names=ex.match(/\b[a-z][A-Za-z]*\b/g)||[], args=[], vals=[];
+      names.forEach(function(n){ if(n!=='Math'&&n!=='max'&&args.indexOf(n)<0){ args.push(n); vals.push(sliderVal(n)); } });
+      try{ v=Function.apply(null,args.concat('return '+ex)).apply(null,vals); }catch(e){ v=NaN; }
+    }
+    els[i].textContent=isFinite(v)?v.toFixed(dp):'?';
+  }
+}
+
+function buildNav(){
+  var nav=$('d_nav'), hs=document.querySelectorAll('#docs h2[id]'), html='';
+  for(var i=0;i<hs.length;i++) html+='<a href="#'+hs[i].id+'" data-id="'+hs[i].id+'">'+esc(hs[i].textContent)+'</a>';
+  nav.innerHTML=html;
+  nav.addEventListener('click',function(e){
+    var a=e.target.closest('a'); if(!a) return;
+    e.preventDefault(); var h=$(a.getAttribute('data-id')); if(h) h.scrollIntoView({block:'start'});
+  });
+  /* in-text links scroll inside the panel rather than changing the URL */
+  $('d_body').addEventListener('click',function(e){
+    var a=e.target.closest('a[href^="#d-"]'); if(!a) return;
+    e.preventDefault(); var h=$(a.getAttribute('href').slice(1)); if(h) h.scrollIntoView({block:'start'});
+  });
+  $('d_body').addEventListener('scroll',spy);
+}
+function spy(){
+  var body=$('d_body'), top=body.getBoundingClientRect().top+40, hs=document.querySelectorAll('#docs h2[id]'), cur=null;
+  for(var i=0;i<hs.length;i++) if(hs[i].getBoundingClientRect().top<=top) cur=hs[i].id;
+  if(!cur && hs.length) cur=hs[0].id;
+  var as=document.querySelectorAll('#d_nav a');
+  for(var j=0;j<as.length;j++) as[j].classList.toggle('on',as[j].getAttribute('data-id')===cur);
+}
+
+function open(on){
+  document.body.classList.toggle('docs',on);
+  $('dbtn').classList.toggle('on',on);
+  if(!on) return;
+  if(!built){
+    var figs=document.querySelectorAll('#docs figure.code');
+    for(var i=0;i<figs.length;i++) fillCode(figs[i]);
+    buildNav(); built=true;
+  }
+  buildParams(); fillValues(); spy();
+}
+$('dbtn').addEventListener('click',function(){ open(!document.body.classList.contains('docs')); });
+})();
+</script>
+
 </body>
 </html>
