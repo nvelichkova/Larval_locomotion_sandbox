@@ -349,11 +349,11 @@ figure.code.miss pre{color:var(--coral)}
         <input type="range" id="vtime" min="5" max="300" step="5" value="60"></div>
       <div class="row"><label title="Width of the scored border zone. Edge occupancy is a measured quantity in the foraging literature, so it is reported rather than assumed away."><span>Border zone</span><b id="v_bw">4</b></label>
         <input type="range" id="bw" min="1" max="20" step="0.5" value="4"></div>
-      <div class="row"><label title="Local search after leaving a patch: elevated turning centred on the exit point, lasting minutes (Finding a path, JEB 2025). 0 disables it."><span>Local search</span><b id="v_lsd">120</b></label>
+      <div class="row"><label title="Seconds of local search after leaving a patch: elevated turning around the exit point (Finding a path, JEB 2025). Lasts longer after better food. Turns are aimed back at the exit point only if Return bias is above 0. 0 disables it."><span>Local search</span><b id="v_lsd">120</b></label>
         <input type="range" id="lsd" min="0" max="300" step="5" value="120"></div>
       <div class="row"><label title="Probability a turn during local search is aimed back at the exit point. Default 0 because measuring it showed aiming HURTS: undirected area-restricted search gave 40% patch residence against 27% when aiming was on. Circling a place is not the same as steering at it."><span>Return bias</span><b id="v_lsb">0.00</b></label>
         <input type="range" id="lsb" min="0" max="1" step="0.01" value="0"></div>
-      <div class="row"><label title="Run duration is multiplied by this during local search, and stride period divided by it, so the larva turns more and moves faster - larvae speed up during local search rather than slowing down."><span>Search int</span><b id="v_lsi">0.35</b></label>
+      <div class="row"><label title="Run duration is multiplied by this during local search, so the larva turns more often. Crawling also speeds up during search - larvae speed up rather than slowing down - but that is a fixed 0.85 on the wave interval, not set by this slider."><span>Search int</span><b id="v_lsi">0.35</b></label>
         <input type="range" id="lsi" min="0.1" max="1" step="0.01" value="0.35"></div>
       <div class="row"><label title="Published geometry: two patches of radius 25 mm (Wosniack et al. 2022); four of radius 17.5 mm, 62.5 mm from centre in a 250 mm arena (Dhawan et al. 2025)."><span>Patch radius</span><b id="v_pr">18</b></label>
         <input type="range" id="pr" min="4" max="45" step="1" value="18"></div>
@@ -768,7 +768,7 @@ figure.code.miss pre{color:var(--coral)}
 <p>During local search:</p>
 <ul>
   <li>mean run length &times; <span class="pk">lsi</span> (more turns);</li>
-  <li>wave interval &times; 0.85 (faster crawling);</li>
+  <li>wave interval &times; 0.85 (faster crawling), unless the wave-length gate already sets a longer interval, as it does on agar at default settings (see <a href="#d-notes">notes</a>);</li>
   <li>with probability <span class="pk">lsb</span> a turn aims back at the exit point (default 0: the code notes that aiming lowered patch residence).</li>
 </ul>
 <p>Search ends early on reaching food again.</p>
@@ -806,8 +806,7 @@ figure.code.miss pre{color:var(--coral)}
 <h2 id="d-notes">14. Notes from reading the code</h2>
 <p>Places where the code, comments or tooltips disagree, or where behaviour is not obvious. None of these have been changed.</p>
 <ol class="dsteps">
-  <li><b>Wave interval vs stride period.</b> A wave can only start once the previous one has left the body, after 10&middot;<span class="pk">del</span> + <span class="pk">dur</span> (1.5&nbsp;s at defaults). <code>applyLocal</code> limits the stride period from below using 10&middot;<span class="pk">del</span> only (0.9&nbsp;s), without <span class="pk">dur</span>. On agar it sets the period to that 0.9&nbsp;s floor (the slider's written value of 1.07 is replaced as soon as the page loads). So on agar and sucrose the gate, not "Stride period", sets the crawl rhythm: waves come every 1.5&nbsp;s, not every 0.9&nbsp;s. The speed matching and the pause fraction are both computed for a period that is never reached.</li>
-  <li><b>Local search tooltips.</b> "Search int" says the stride period is divided by <span class="pk">lsi</span>. In the code the stride period is multiplied by a fixed 0.85; <span class="pk">lsi</span> affects run length only. The "Local search" tooltip says turns aim back at the exit point. That is controlled by <span class="pk">lsb</span>, which defaults to 0.</li>
+  <li><b>Wave interval vs stride period.</b> A wave can only start once the previous one has left the body, after 10&middot;<span class="pk">del</span> + <span class="pk">dur</span> (1.5&nbsp;s at defaults). <code>applyLocal</code> limits the stride period from below using 10&middot;<span class="pk">del</span> only (0.9&nbsp;s), without <span class="pk">dur</span>. On agar it sets the period to that 0.9&nbsp;s floor (the slider's written value of 1.07 is replaced as soon as the page loads). So on agar and sucrose the gate, not "Stride period", sets the crawl rhythm: waves come every 1.5&nbsp;s, not every 0.9&nbsp;s. The speed matching and the pause fraction are both computed for a period that is never reached. The same gate also cancels the local-search speed-up (wave interval &times; 0.85) whenever it sets the rhythm.</li>
   <li><b>Hidden parameter.</b> <span class="pk">lsq</span> = 0.6 (how much patch quality lengthens local search) has no slider and cannot be set from the batch runner.</li>
   <li><b>Inward bias is stronger than <span class="pk">pb</span>.</b> A failed inward draw falls back to handedness, which points inward about half the time (see <a href="#d-turn">turning</a>).</li>
   <li><b>Memory time stamp.</b> <var>t</var><sub>mem</sub> is set when the visit <em>closes</em>, which can be up to <span class="pk">vtime</span> after the larva actually left. The memory therefore starts decaying a little later than the departure.</li>
@@ -1547,9 +1546,9 @@ function acceptSweep(){
      heading is still rotating while the bend is inside the body */
   pend={psi0:psiCastStart, due:t+25.0};
 }
-/* local search: after leaving a food patch the larva turns far more often,
-   speeds up rather than slowing down, and aims its turns back at the place it
-   left the patch (JEB 2025). */
+/* local search: after leaving a food patch the larva turns far more often and
+   speeds up rather than slowing down (JEB 2025). Turns are aimed back at the
+   place it left the patch only with probability lsb, which defaults to 0. */
 function inLS(){ return P.lsd>0 && t<lsEnd; }
 function runLen(){ return expo(P.rt*(inLS()?P.lsi:1)*(leaving?0.3:1)); }
 /* strength of the comparative memory now */
