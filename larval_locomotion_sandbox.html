@@ -263,9 +263,9 @@ figure.code.miss pre{color:var(--coral)}
         <input type="range" id="per" min="0.6" max="2" step="0.01" value="1.07"></div>
       <div class="row"><label title="0.09 ± 0.01 s per segment (Sun et al. 2022). Waves start at the rearmost abdominal segments and end at T2 or T1 (Lahiri et al. 2011)."><span>Interseg. lag</span><b id="v_del">90</b></label>
         <input type="range" id="del" min="15" max="200" step="1" value="90"></div>
-      <div class="row"><label title="Swing period of one segment. Duration ÷ delay = how many segments are released at once."><span>Contract. dur</span><b id="v_dur">170</b></label>
+      <div class="row"><label title="Swing period of one segment. Duration ÷ delay = how many segments are released at once."><span>Contract. dur</span><b id="v_dur">600</b></label>
         <input type="range" id="dur" min="100" max="700" step="5" value="600"></div>
-      <div class="row"><label title="Peak shortening of a segment. Stride length is NOT imposed — it emerges. Targets: 0.70 mm (Sun et al. 2022) ≈ 0.13 body lengths/wave (Lahiri et al. 2011)."><span>Contract. amp</span><b id="v_amp">0.90</b></label>
+      <div class="row"><label title="Peak shortening of a segment. Stride length is NOT imposed — it emerges. Targets: 0.70 mm (Sun et al. 2022) ≈ 0.13 body lengths/wave (Lahiri et al. 2011)."><span>Contract. amp</span><b id="v_amp">0.50</b></label>
         <input type="range" id="amp" min="0.1" max="0.7" step="0.01" value="0.50"></div>
       <div class="row"><label title="Probability the relay reaches the next segment. Below 1 the wave can die mid-body."><span>Relay reliab.</span><b id="v_rel">1.00</b></label>
         <input type="range" id="rel" min="0.6" max="1" step="0.005" value="1"></div>
@@ -327,7 +327,7 @@ figure.code.miss pre{color:var(--coral)}
         <input type="range" id="wv" min="0" max="25" step="0.5" value="8"></div>
       <div class="row"><label title="Peak probability of turning toward the patch centre at the food–no-food interface (Wosniack et al. 2022). 0.5 = no bias. Only applies to food patches: agar–agar borders produce no bias."><span>Inward bias</span><b id="v_pb">0.95</b></label>
         <input type="range" id="pb" min="0.5" max="1" step="0.01" value="0.95"></div>
-      <div class="row"><label title="Individual turning handedness. H ><span>0.5 biases counter-clockwise, H < 0.5 clockwise (Wosniack et al. 2022). Used when no inward bias applies.">Handedness H</span><b id="v_hd">0.50</b></label>
+      <div class="row"><label title="Individual turning handedness. H &gt; 0.5 biases counter-clockwise, H &lt; 0.5 clockwise (Wosniack et al. 2022). Used when no inward bias applies."><span>Handedness H</span><b id="v_hd">0.50</b></label>
         <input type="range" id="hd" min="0" max="1" step="0.01" value="0.5"></div>
     </div>
   </div>
@@ -810,7 +810,6 @@ figure.code.miss pre{color:var(--coral)}
   <li><b>Hidden parameter.</b> <span class="pk">lsq</span> = 0.6 (how much patch quality lengthens local search) has no slider and cannot be set from the batch runner.</li>
   <li><b>Inward bias is stronger than <span class="pk">pb</span>.</b> A failed inward draw falls back to handedness, which points inward about half the time (see <a href="#d-turn">turning</a>).</li>
   <li><b>Memory time stamp.</b> <var>t</var><sub>mem</sub> is set when the visit <em>closes</em>, which can be up to <span class="pk">vtime</span> after the larva actually left. The memory therefore starts decaying a little later than the departure.</li>
-  <li><b>Markup.</b> The "Handedness H" label has a misplaced <code>&lt;span&gt;</code> inside its tooltip, so the tooltip text shows "&lt;span&gt;". Some value labels (e.g. Contract. amp, Contract. dur) are written with placeholder numbers that the script overwrites on load. This is harmless.</li>
 </ol>
 
   </article>
