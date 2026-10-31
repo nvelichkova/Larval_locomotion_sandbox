@@ -426,6 +426,62 @@ the claim that habituation brings turn rate closer to the published 1.7–2.8, n
 
 ---
 
+## 4b. Touch stimulation (poking the larva)
+
+**Click the larva** in the arena to poke it (the cursor turns to a crosshair over the body), or set
+**Auto-poke** (`pki`, Boundary panel) to poke the head every *n* seconds on a random side. A click
+counts as a hit within 0.5 mm of the midline or 8 screen pixels, whichever is larger, and is
+classified by where along the body it lands and on which side:
+
+| Region | Response |
+|---|---|
+| Head (T1–T3) | By touch habituation level, below |
+| Mid-body (A1–A6) | A short pause, Exp(0.8 s), if crawling forward |
+| Tail (A7–A8) | Logged only. Real larvae accelerate forward; not modelled |
+
+Head pokes use the same four-level hierarchy as the wall, chosen from the level *before* the poke's
+dose:
+
+| Touch level | Response |
+|---|---|
+| > 0.66 | reverse 2 waves, then turn **away from the poked side** with probability `rvp` |
+| 0.33 – 0.66 | turn — a head sweep starting away from the poked side |
+| 0.12 – 0.33 | pause |
+| ≤ 0.12 | none |
+
+A poke during a reversal adds one more backward wave. "Right" is the side a positive bend turns the
+head toward, which is the larva's right as seen from above in the arena view.
+
+**Habituation is separate from the wall's** — its own level, the "Touch resp" stat tile — but uses
+the same equations and time constants (`tdes`, `tres`, `cdose`, `rgain`): one dose per poke (a poke
+within 0.5 s of the last is the same touch), recovery between pokes that speeds up within a bout,
+and a bout that ends after 8 s without a poke. Keeping it separate means a poke protocol does not
+change the wall response, and every wall result above still stands.
+
+**Measured, and a known gap.** Auto-poke at 2, 5, 10 and 30 s intervals (20 seeds × 600 s each,
+100 × 50 mm agar): every head poke got a full reversal — 100 % at every interval. With the wall's
+parameters the touch level never falls below the reversal threshold: one poke removes only about
+15 % of it, and it recovers before the next. A wall offsets this because sustained pressing keeps
+driving the level down; a poke is instantaneous. Even with `rgain` = 0, pokes every 2 s settle at a
+level of about 0.76. Real larvae do habituate to repeated gentle touch (Kernan et al. 1994, from
+memory — to be checked), so pokes probably need their own dose and recovery parameters, fitted to a
+published repeated-touch curve. Also: at 2 s intervals every poke lands during the previous
+reversal and extends it, so the larva reverses continuously.
+
+Verified: the larva turned away from the poked side in 48 of 48 poke-triggered turns (8 seeds, both
+sides, with and without postural curvature), and runs without pokes are bit-for-bit unchanged.
+
+**Output.** Each poke draws a fading ring and a purple tick at the top of both kymographs, and is
+logged — the **Pokes** button exports time, source (mouse / auto), region, side, level and touch
+habituation before the poke, response, and the state it interrupted. Batch runs and the Node tools
+add `n_head_pokes`, `poke_reverse_frac`, `poke_turn_frac`, `poke_pause_frac`, `poke_none_frac` and
+`touch_habit_end` to each run's summary. `report.js` does not show these by default; name them:
+`node report.js out/ poke_reverse_frac poke_turn_frac touch_habit_end`. For scripted protocols,
+`runSim` takes an `onFrame(hook)` callback called every 0.05 s of simulated time, and
+`hook.poke(region, side, source)` pokes from it. Clicks are ignored during replay.
+
+---
+
 ## 5. Parameters and their provenance
 
 Every slider has a tooltip with its source. Summary (third instar unless noted):
@@ -966,7 +1022,8 @@ is large enough; shrink the arena-width slider to enlarge the animal.
 watchable — at fitted scale a 4 mm larva in a 100 mm arena is a few dozen pixels. The wheel zooms
 about the cursor, dragging pans, double-click returns to the fitted view, and the slider beside the
 replay transport does the same. `Follow` keeps the larva centred; dragging turns it off, since the
-two fight each other. Zoom is a view setting, not a model setting — it changes nothing about the
+two fight each other. A click that moves less than a few pixels is not a drag: on the larva it is a
+poke (§4b), so double-clicking the larva pokes it twice rather than resetting the zoom. Zoom is a view setting, not a model setting — it changes nothing about the
 simulation, and it works the same while scrubbing or replaying.
 
 Two things change automatically above a few times magnification, because what reads correctly at
@@ -993,7 +1050,8 @@ light up and everything from A2/A3 back stays blank — the thoracic restriction
 asserted. Watch the bend migrate backward as the body straightens.
 
 **Stats.** `Target` is the published speed for the current genotype/substrate preset, for comparison
-with the emergent `Speed`.
+with the emergent `Speed`. `Wall resp` and `Touch resp` show the response a wall contact or a head
+poke would get now, and the matching habituation level (§4a, §4b).
 
 ---
 
