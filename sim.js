@@ -148,6 +148,9 @@ function runSim(opt = {}) {
       const cb = rafCb; rafCb = null;
       if (!cb) break;
       cb(simClock * 1000);
+      // optional per-frame callback, e.g. to poke at chosen times:
+      //   onFrame: (hook) => { if (hook.t > 20 && !done) { hook.poke('head', 1, 'script'); done = true; } }
+      if (opt.onFrame) opt.onFrame(hook);
       guard++;
     }
 
@@ -174,6 +177,8 @@ function runSim(opt = {}) {
       n_wander_exits: hook.nWander,
       habituation_end: +hook.habit.toFixed(4),
       wall_tier_end: hook.wallTier,
+      ...pokeSummary(hook),
+      touch_habit_end: hook.tHabit !== undefined ? +hook.tHabit.toFixed(4) : null,
       stride_period_s: num('v_per'),
       pause_fraction: num('v_pf'),
       mean_run_s: num('v_rt'),
@@ -233,6 +238,22 @@ function runSim(opt = {}) {
       if (v === undefined) delete global[k]; else global[k] = v;
     }
   }
+}
+
+/* Share of head pokes that got each response (reverse_extended counts as
+   reverse); null when there were none. Same as the in-page batch runner. */
+function pokeSummary(hook) {
+  const c = { reverse: 0, turn: 0, pause: 0, none: 0 };
+  let n = 0;
+  for (const r of hook.pokeLog || []) {
+    if (r[2] !== 'head') continue;
+    n++;
+    const k = r[6] === 'reverse_extended' ? 'reverse' : r[6];
+    if (k in c) c[k]++;
+  }
+  const frac = (k) => (n ? +(c[k] / n).toFixed(4) : null);
+  return { n_head_pokes: n, poke_reverse_frac: frac('reverse'), poke_turn_frac: frac('turn'),
+           poke_pause_frac: frac('pause'), poke_none_frac: frac('none') };
 }
 
 module.exports = { runSim, DEFAULT_APP };

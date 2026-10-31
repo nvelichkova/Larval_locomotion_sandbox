@@ -239,6 +239,7 @@ figure.code.miss pre{color:var(--coral)}
   <button id="csv" title="Trajectory as CSV (opens directly in Excel): time, centroid, heading, all 12 spine points, per-segment contraction, contact and intersegmental bend.">Export CSV</button>
   <button id="turns" title="One row per completed turn.">Turns</button>
   <button id="visits" title="One row per patch visit: residence, patch quality and the quality of the previous patch. The unit of analysis for the comparative-memory effect.">Visits</button>
+  <button id="pokes" title="One row per poke (mouse click on the larva, or Auto-poke): time, source, body region, side, touch response level before the poke, habituation level before the poke, the response, and the state it interrupted.">Pokes</button>
   <button id="figpdf" title="The trajectory so far as a vector PDF figure, with the arena, its patches, a scale bar and the genotype and substrate. Real paths, not a screenshot. Shift-click for SVG. Exports what the replay holds, which is the last 3000 s of a longer run.">Figure</button>
   <button id="imp" title="Load a trajectory CSV: this sandbox's own export, or foreign spine tracking with a time column and x/y columns per midline point. Replaces the replay buffer.">Import</button>
   <input type="file" id="impfile" accept=".csv,.tsv,.txt,text/csv" style="display:none">
@@ -343,6 +344,8 @@ figure.code.miss pre{color:var(--coral)}
         <input type="range" id="cdose" min="0" max="12" step="0.1" value="3"></div>
       <div class="row"><label title="How strongly repeated contacts speed up recovery. 0 = fixed tau_res."><span>Recovery gain</span><b id="v_rgain">0.63</b></label>
         <input type="range" id="rgain" min="0" max="1.2" step="0.01" value="0.63"></div>
+      <div class="row"><label title="Poke the head automatically every this many seconds, on a random side. 0 = off. Pokes use their own touch habituation with the same time constants as the wall (tau des, tau res, contact dose, recovery gain), so a poke protocol does not change the wall response and vice versa. You can also click the larva: head pokes give reverse, turn away, pause or nothing depending on how habituated it is; mid-body pokes give a short pause; tail pokes are logged only."><span>Auto-poke</span><b id="v_pki">0</b></label>
+        <input type="range" id="pki" min="0" max="60" step="1" value="0"></div>
       <div class="row"><label title="Return trips within this distance of the patch edge count as part of the same visit, so a brief excursion is not logged as a separate visit. Dhawan et al. use 3 cm; that threshold covered most return trips."><span>Visit merge</span> <b id="v_vmerge">30</b></label>
         <input type="range" id="vmerge" min="0" max="60" step="1" value="30"></div>
       <div class="row"><label title="A visit also closes after this long off the patch, whatever the distance. Needed because in an arena small relative to its patches the merge distance may be unreachable."><span>Merge timeout</span> <b id="v_vtime">60</b></label>
@@ -394,7 +397,7 @@ figure.code.miss pre{color:var(--coral)}
 </div>
 
 <main>
-  <div class="cwrap"><canvas id="arena"></canvas><div class="tag">arena &middot; centroid track</div></div>
+  <div class="cwrap"><canvas id="arena"></canvas><div class="tag">arena &middot; centroid track &middot; click the larva to poke it</div></div>
   <div class="col">
     <div class="cwrap"><canvas id="kymo"></canvas><div class="tag">contraction &middot; release</div></div>
     <div class="cwrap"><canvas id="jang"></canvas><div class="tag">intersegmental bend</div></div>
@@ -705,7 +708,37 @@ figure.code.miss pre{color:var(--coral)}
 <figure class="code" data-range="var hitting=hitting0;|if(nearWall()){" data-cap="stepSim(): habituation"></figure>
 
 <!-- ===================================================================== -->
-<h2 id="d-sub">9. Substrates and food patches</h2>
+<h2 id="d-poke">9. Touch stimulation (poking the larva)</h2>
+<p>Click the larva in the arena to poke it, or set <span class="pk">pki</span> (Auto-poke) to poke the head every <span class="pk">pki</span> seconds on a random side. The click is matched to the nearest point on the body midline. It counts as a hit within 0.5&nbsp;mm or 8 screen pixels, whichever is larger, and is classified by where along the body it landed and on which side.</p>
+<table class="dtab">
+  <thead><tr><th>Region</th><th>Segments</th><th>Response</th></tr></thead>
+  <tbody>
+    <tr><td>Head</td><td>T1&ndash;T3</td><td>Depends on touch habituation (below)</td></tr>
+    <tr><td>Mid-body</td><td>A1&ndash;A6</td><td>A short pause, Exp(0.8&nbsp;s), if crawling forward</td></tr>
+    <tr><td>Tail</td><td>A7&ndash;A8</td><td>Logged only. Real larvae accelerate forward; that is not modelled</td></tr>
+  </tbody>
+</table>
+<h3>Head pokes</h3>
+<p>Head pokes have their own habituation level <var>H</var><sub>touch</sub>, separate from the wall&#39;s, but using the same equations and the same time constants (<span class="pk">tdes</span>, <span class="pk">tres</span>, <span class="pk">cdose</span>, <span class="pk">rgain</span>). The response is chosen from the level <em>before</em> this poke&#39;s dose:</p>
+<table class="dtab">
+  <thead><tr><th>Level</th><th><var>H</var><sub>touch</sub></th><th>Response</th></tr></thead>
+  <tbody>
+    <tr><td>3</td><td>&gt; 0.66</td><td>Reverse 2 waves, then turn <em>away from the poked side</em> with probability <span class="pk">rvp</span></td></tr>
+    <tr><td>2</td><td>0.33&ndash;0.66</td><td>Turn: head sweep starting away from the poked side (abandons a sweep in progress)</td></tr>
+    <tr><td>1</td><td>0.12&ndash;0.33</td><td>Pause, Exp(0.8&nbsp;s)</td></tr>
+    <tr><td>0</td><td>&le; 0.12</td><td>None</td></tr>
+  </tbody>
+</table>
+<p>A poke during a reversal adds one backward wave instead. Habituation:</p>
+<div class="eq">each poke (if &gt; 0.5&nbsp;s after the last):&ensp; <var>n</var> &larr; <var>n</var>+1,&ensp; <var>H</var><sub>touch</sub> &larr; <var>H</var><sub>touch</sub> &middot; e<sup>&minus;<span class="pk">cdose</span>/<span class="pk">tdes</span></sup></div>
+<div class="eq">between pokes:&ensp; <var>n</var> &larr; 0 after 8&nbsp;s without a poke;&emsp; <var>H</var><sub>touch</sub> &larr; <var>H</var><sub>touch</sub> + (1 &minus; <var>H</var><sub>touch</sub>) min(1, <var>dt</var>/<var>&tau;</var>&#8242;),&emsp; <var>&tau;</var>&#8242; = max(0.05, <span class="pk">tres</span> e<sup>&minus;<span class="pk">rgain</span>&middot;max(0,<var>n</var>&minus;1)</sup>)</div>
+<p class="dnote">With the default wall parameters, repeated head pokes <b>do not habituate</b>. Every poke at intervals of 2, 5, 10 or 30&nbsp;s gives a full reversal. One poke removes only about 15% of <var>H</var><sub>touch</sub>, and recovery between pokes (faster still within a bout) restores it before the next one. Even with <span class="pk">rgain</span> = 0, pokes every 2&nbsp;s settle at <var>H</var><sub>touch</sub> &asymp; 0.76, above the reversal threshold. Real larvae do habituate to repeated gentle touch (Kernan et al. 1994), so pokes probably need their own dose and recovery parameters.</p>
+<p>Side: "right" is the side a positive bend turns the head toward, which is the larva&#39;s right as seen from above in the arena view. Each poke draws a fading ring and a purple tick at the top of both kymographs, and is logged (<b>Pokes</b> button): time, source, region, side, level and <var>H</var><sub>touch</sub> before the poke, response, and the state it interrupted. The batch runner and Node tools report <code>n_head_pokes</code>, the share of each response and <code>touch_habit_end</code>. Auto-poke draws its random side only when it is on, so runs without it are unchanged bit for bit. Clicks are ignored during replay.</p>
+<figure class="code" data-fn="pokeTier,poke,hitBody" data-cap="poke response and hit test"></figure>
+<figure class="code" data-range="/* touch habituation recovers between pokes|if(nearWall()){" data-cap="stepSim(): touch recovery and Auto-poke"></figure>
+
+<!-- ===================================================================== -->
+<h2 id="d-sub">10. Substrates and food patches</h2>
 <h3>Arena layouts</h3>
 <p>The arena is <span class="pk">aw</span> &times; <span class="pk">ah</span>&nbsp;mm. The patch radius is <var>R</var> = min(<span class="pk">pr</span>, 0.30&middot;min(<var>W</var>,<var>H</var>)). Patch centres:</p>
 <ul>
@@ -736,7 +769,7 @@ figure.code.miss pre{color:var(--coral)}
 <p>Food quality <var>Q</var> is agar 0, sucrose 0.5, yeast 1. It is used by the leaving decision and by local search.</p>
 
 <!-- ===================================================================== -->
-<h2 id="d-leave">10. Patch leaving and comparative memory</h2>
+<h2 id="d-leave">11. Patch leaving and comparative memory</h2>
 <p>How long the larva stays on a patch is not set directly. On food, a decision variable <var>x</var> accumulates evidence for leaving (a leaky drift&ndash;diffusion, Ornstein&ndash;Uhlenbeck process, kept at or above 0). The larva decides to leave when <var>x</var> reaches 1:</p>
 <div class="eq"><var>x</var> &larr; max(0,&ensp; <var>x</var> + (<var>&mu;</var><sub>eff</sub> &minus; <span class="pk">oulk</span>&middot;<var>x</var>) <var>dt</var> + <span class="pk">ounz</span> &radic;<var>dt</var> &middot; <var>U</var>(&minus;1,1))</div>
 <div class="eq"><var>&mu;</var><sub>eff</sub> = max( 10<sup>&minus;4</sup>,&ensp; <span class="pk">oumu</span> (1 &minus; <span class="pk">ouq</span>&middot;<var>Q</var>) &middot; (1 + <span class="pk">ocmp</span> &middot; <var>m</var>(<var>t</var>) &middot; (<var>Q</var><sub>mem</sub> &minus; <var>Q</var>)) )</div>
@@ -762,7 +795,7 @@ figure.code.miss pre{color:var(--coral)}
 <figure class="code" data-fn="closeVisit" data-cap="closing a visit"></figure>
 
 <!-- ===================================================================== -->
-<h2 id="d-ls">11. Local search</h2>
+<h2 id="d-ls">12. Local search</h2>
 <p>When the larva steps from food onto agar (and <span class="pk">lsd</span> &gt; 0), it records the exit point and starts a period of local search. The period is longer after better food:</p>
 <div class="eq"><var>T</var><sub>LS</sub> = <span class="pk">lsd</span> &middot; (1 &minus; <span class="pk">lsq</span> + <span class="pk">lsq</span>&middot;<var>Q</var>),&emsp; <span class="pk">lsq</span> = 0.6 (no slider)</div>
 <p>During local search:</p>
@@ -775,7 +808,7 @@ figure.code.miss pre{color:var(--coral)}
 <figure class="code" data-range="if(curLocal &amp;&amp; curLocal!=='agar' &amp;&amp; s==='agar' &amp;&amp; P.lsd&gt;0){|curLocal=s;" data-cap="applyLocal(): starting local search"></figure>
 
 <!-- ===================================================================== -->
-<h2 id="d-out">12. Measured outputs</h2>
+<h2 id="d-out">13. Measured outputs</h2>
 <table class="dtab">
   <thead><tr><th>Readout</th><th>Definition</th></tr></thead>
   <tbody>
@@ -798,12 +831,12 @@ figure.code.miss pre{color:var(--coral)}
 <figure class="code" data-range="var c=centroid(), dcx=|if(dd&gt;0.0002){" data-cap="stepSim(): path length and speed"></figure>
 
 <!-- ===================================================================== -->
-<h2 id="d-params">13. Parameter reference</h2>
+<h2 id="d-params">14. Parameter reference</h2>
 <p>Built from the sliders on this page, so names, defaults and ranges are always current. "Default" is the value written in the page; "Now" is the slider setting. <span class="flag auto">auto</span> = set from the local substrate every time it changes; <span class="flag guess">guess</span> = not measured; <span class="flag refuted">refuted</span> = tested and found not to work as hoped. The description is the slider's tooltip, which carries the literature source.</p>
 <div id="d_params"></div>
 
 <!-- ===================================================================== -->
-<h2 id="d-notes">14. Notes from reading the code</h2>
+<h2 id="d-notes">15. Notes from reading the code</h2>
 <p>Places where the code, comments or tooltips disagree, or where behaviour is not obvious. None of these have been changed.</p>
 <ol class="dsteps">
   <li><b>Wave interval vs stride period.</b> A wave can only start once the previous one has left the body, after 10&middot;<span class="pk">del</span> + <span class="pk">dur</span> (1.5&nbsp;s at defaults). <code>applyLocal</code> limits the stride period from below using 10&middot;<span class="pk">del</span> only (0.9&nbsp;s), without <span class="pk">dur</span>. On agar it sets the period to that 0.9&nbsp;s floor (the slider's written value of 1.07 is replaced as soon as the page loads). So on agar and sucrose the gate, not "Stride period", sets the crawl rhythm: waves come every 1.5&nbsp;s, not every 0.9&nbsp;s. The speed matching and the pause fraction are both computed for a period that is never reached. The same gate also cancels the local-search speed-up (wave interval &times; 0.85) whenever it sets the rhythm.</li>
@@ -858,6 +891,7 @@ figure.code.miss pre{color:var(--coral)}
   <div class="stat"><span>Leave evid.</span><b id="s_ou">0.00</b></div>
   <div class="stat"><span>Decided %</span><b id="s_dw">&mdash;</b></div>
   <div class="stat"><span>Wall resp</span><b id="s_wr">reverse</b></div>
+  <div class="stat" title="Response a head poke would get now, and the touch habituation level"><span>Touch resp</span><b id="s_tp">rev 100%</b></div>
   <div class="stat"><span>Head angle</span><b id="s_ha">0&deg;</b></div>
   <div class="stat"><span>Max bend</span><b id="s_mj">0&deg;</b></div>
   <div class="stat"><span>Turns/min</span><b id="s_tm">&mdash;</b></div>
@@ -906,10 +940,10 @@ function PB(){return css('--panel')||'#fff';}
 
 var P={per:1.07,del:90,dur:600,amp:0.50,rel:1,spd:1,lift:0.9,mu:10,hl:0.85,ext:4,sr:0.7,migK:0.6,
        ca:55,cg:1.3,acc:0.5,rt:22.6,pf:0,wv:8,pb:0.95,hd:0.5,pr:18,aw:100,ah:50,tr:0.6,migV:0,bexit:1,rsp:0,asym:0,cbs:25,cbt:2,wdf:0,mh:1,rvp:0.7,
-       seed:1,oumu:0.03,ouq:0.75,oulk:0.004,ounz:0.08,ocmp:1.2,tmem:600,tdes:18.9,tres:5.3,rgain:0.63,cdose:3,bw:4,lsd:120,lsb:0,lsq:0.6,vmerge:30,vtime:60,lsi:0.35};
+       seed:1,oumu:0.03,ouq:0.75,oulk:0.004,ounz:0.08,ocmp:1.2,tmem:600,tdes:18.9,tres:5.3,rgain:0.63,cdose:3,bw:4,lsd:120,lsb:0,lsq:0.6,vmerge:30,vtime:60,lsi:0.35,pki:0};
 function fmt(id){
   return (id==='oumu'||id==='oulk')?P[id].toFixed(3)
-        :(id==='del'||id==='dur'||id==='aw'||id==='ah'||id==='wv'||id==='ca'||id==='ext'||id==='pr'||id==='lsd'||id==='seed'||id==='tmem'||id==='vmerge'||id==='vtime')?P[id].toFixed(0)
+        :(id==='del'||id==='dur'||id==='aw'||id==='ah'||id==='wv'||id==='ca'||id==='ext'||id==='pr'||id==='lsd'||id==='seed'||id==='tmem'||id==='vmerge'||id==='vtime'||id==='pki')?P[id].toFixed(0)
         :((id==='mu'||id==='spd'||id==='rt'||id==='tdes'||id==='tres'||id==='bw'||id==='cdose')?P[id].toFixed(1):P[id].toFixed(2));
 }
 Object.keys(P).forEach(function(id){
@@ -1133,6 +1167,14 @@ var timeIn=0, patchVisits=0, timeBorder=0;
    reversal -> turn -> pause -> continue. Recovery accelerates with the number
    of contacts in the current bout. */
 var habit=1, nContact=0, touching=false, touchEnd=-1e9, wallTier=3;
+/* touch stimulation: a poke on the body, by mouse click or by Auto-poke.
+   Head pokes have their own habituation level, tHabit, with the wall's
+   equations and time constants: a dose per poke, recovery between pokes that
+   speeds up within a bout, and the same four response levels. Separate so
+   that a poke protocol leaves the wall response - and every wall result
+   already measured - untouched. revSide carries the side to turn away from
+   at the end of a poke-triggered reversal; 0 means use the wall rule. */
+var tHabit=1, tN=0, tLast=-1e9, revSide=0, nextPoke=0, pokeLog=[], pokeMark=0, pokeFx=null;
 /* ---- patch leaving as evidence accumulation -----------------------------
    Residence is not a parameter here. While the larva is on a patch a decision
    variable accumulates (Ornstein-Uhlenbeck: drift + leak + noise) and leaving
@@ -1180,7 +1222,7 @@ var dWorld=[], dC=new Array(N).fill(0), dW=new Array(NP).fill(1),
     dB=new Array(N).fill(0), dState='run', dLocal='agar', dT=0,
     dCx=0, dCy=0, dSpeed=0, dPath=0, dTurns=0, dStride=0, dLastTurn=0, dDir=1,
     dBorder=0, dHabit=1, dTier=3, dLS=0, dOu=0, dLeav=0, dResSum=0, dResN=0, dMem=0, dDec=0, dWan=0,
-    dSumTurn=0, dTimeIn=0, dVisits=0;
+    dSumTurn=0, dTimeIn=0, dVisits=0, dTouch=1;
 for(var _i=0;_i<NP;_i++) dWorld.push([0,0]);
 var SCODE={run:0,cast:1,back:2,pause:3}, SNAME=['run','cast','back','pause'];
 var LCODE={agar:0,sucrose:1,yeast:2}, LNAME=['agar','sucrose','yeast'];
@@ -1204,7 +1246,7 @@ function histPush(){
   H[o+68]=timeIn; H[o+69]=patchVisits; H[o+70]=dir;
   H[o+71]=timeBorder; H[o+72]=habit; H[o+73]=wallTier; H[o+74]=inLS()?1:0;
   H[o+75]=ouX; H[o+76]=leaving?1:0; H[o+77]=resSum; H[o+78]=resN; H[o+79]=memW()*(memQ<0?0:memQ);
-  H[o+80]=nDecide; H[o+81]=nWander;
+  H[o+80]=nDecide; H[o+81]=nWander; H[o+82]=pokeMark; H[o+83]=tHabit; pokeMark=0;
   kymoColumn(H,o);
 }
 function loadFrame(i){
@@ -1219,7 +1261,7 @@ function loadFrame(i){
   dTimeIn=H[o+68]; dVisits=H[o+69]; dDir=H[o+70];
   dBorder=H[o+71]; dHabit=H[o+72]; dTier=H[o+73]; dLS=H[o+74];
   dOu=H[o+75]; dLeav=H[o+76]; dResSum=H[o+77]; dResN=H[o+78]; dMem=H[o+79];
-  dDec=H[o+80]; dWan=H[o+81];
+  dDec=H[o+80]; dWan=H[o+81]; dTouch=H[o+83];
 }
 function syncDisplay(){ if(hCount) loadFrame(hCount-1); }
 
@@ -1531,6 +1573,42 @@ function initWave(time){
   }
   lastCX=c[0]; lastCY=c[1];
 }
+/* ---- touch stimulation --------------------------------------------------
+   region: 'head' (T1-T3), 'mid' or 'tail' (A7-A8). side: +1 if the poke
+   landed on the side the head turns toward for a positive bend, which in the
+   arena view (y down, seen from above) is the larva's right.
+   Head: the response is chosen from the habituation level BEFORE this poke's
+   dose, as the wall's is - reverse (then turn away with probability rvp),
+   turn away, pause, or nothing. A poke during a reversal adds one backward
+   wave. Mid-body: a short pause if crawling. Tail: logged only; the forward
+   escape it triggers in real larvae is not modelled. */
+function pokeTier(){ return tHabit>0.66?3 : tHabit>0.33?2 : tHabit>0.12?1 : 0; }
+function poke(region, side, src){
+  var before=state, h0=tHabit, tier=-1, resp='none', away=(side>0)?-1:1;
+  if(region==='head'){
+    tier=pokeTier();
+    if(t-tLast>0.5){ tN++; tHabit*=Math.exp(-P.cdose/Math.max(0.2,P.tdes)); }
+    tLast=t;
+    if(state==='back'){ revLeft++; resp='reverse_extended'; }
+    else if(tier===3){
+      state='back'; dir=-1; revLeft=2; nextInit=t; waveEnd=0; revSide=away; resp='reverse';
+    } else if(tier===2){
+      if(state==='cast') state='run';            /* abandon the sweep in progress */
+      enterCast(away); resp='turn';
+    } else if(tier===1){
+      if(state==='cast') runEnd=t+runLen();      /* the interrupted turn is dropped */
+      state='pause'; pauseEnd=t+expo(0.8); resp='pause';
+    }
+  } else if(region==='mid' && state==='run'){
+    state='pause'; pauseEnd=t+expo(0.8); resp='pause';
+  }
+  pokeMark=(region==='head')?1:(region==='mid')?2:3;
+  var at=(region==='head')?world[0]:(region==='tail')?world[N]:world[(N/2)|0];
+  pokeFx={x:at[0], y:at[1], at:(typeof performance!=='undefined'?performance.now():0)};
+  pokeLog.push([t.toFixed(3), src, region, side>0?'right':'left', tier<0?'':tier,
+                h0.toFixed(3), resp, before]);
+  return resp;
+}
 function enterCast(d){
   if(state==='cast') return;
   state='cast'; castStart=t; castDir=d; nCast=0; decided=false;
@@ -1611,7 +1689,9 @@ function stepSim(dt){
            within 2 mm of the edge (8l). 0.7 is a plausible default and nothing
            more - it is not measured, and it is flagged as such here, in the
            tooltip and in the parameter table. */
-        if(rnd()<P.rvp){ enterCast(wallDir()); }
+        /* a poke-triggered reversal turns away from the poke, not the wall */
+        var rs=revSide; revSide=0;
+        if(rnd()<P.rvp){ enterCast(rs||wallDir()); }
         else {
           /* resuming straight has to refresh the run timer, which otherwise
              still holds the pre-reversal deadline and fires a spontaneous
@@ -1787,6 +1867,20 @@ function stepSim(dt){
   }
   wallTier = habit>0.66?3 : habit>0.33?2 : habit>0.12?1 : 0;
 
+  /* touch habituation recovers between pokes, as the wall's does once clear,
+     and 8 s without a poke ends the bout */
+  if(t-tLast>8) tN=0;
+  if(tHabit<1){
+    var tres2=Math.max(0.05,P.tres*Math.exp(-P.rgain*Math.max(0,tN-1)));
+    tHabit+=(1-tHabit)*Math.min(1,dt/tres2);
+  }
+  /* Auto-poke. Draws a random side only when on, so runs without it are
+     unchanged bit for bit. */
+  if(P.pki>0){
+    if(nextPoke<=0) nextPoke=t+P.pki;
+    else if(t>=nextPoke){ nextPoke+=P.pki; poke('head', rnd()<0.5?1:-1, 'auto'); }
+  } else nextPoke=0;
+
   if(nearWall()){
     if(wallSince<0) wallSince=t;
   } else wallSince=-1;
@@ -1869,6 +1963,7 @@ function reset(){
   nTurns=0; nWaves=0; sumTurn=0; lastTurn=0; strideMM=0; speedAvg=0; pathLen=0;
   timeIn=0; patchVisits=0; timeBorder=0; curLocal=''; strideSum=0; strideN=0;
   habit=1; nContact=0; touching=false; touchEnd=-1e9; wallTier=3; lsEnd=-1;
+  tHabit=1; tN=0; tLast=-1e9; revSide=0; nextPoke=0; pokeLog=[]; pokeMark=0; pokeFx=null;
   ouX=0; leaving=false; memQ=-1; memT=-1e9; lastRes=0; patchIn=-1;
   resSum=0; resN=0; prevLocal='agar'; pendOut=-1; pendSub='agar'; patchIdx=-1;
   pendWhy='wander'; nDecide=0; nWander=0;
@@ -2019,6 +2114,15 @@ function drawArena(){
       ax.fillText(BL[j-1],p[0]*sc+rr+2,p[1]*sc-rr-1);
     }
   }
+  /* a fading ring where the last poke landed */
+  if(pokeFx && !scrubbing){
+    var pAge=(performance.now()-pokeFx.at)/700;
+    if(pAge>=1) pokeFx=null;
+    else {
+      ax.strokeStyle='rgba(127,119,221,'+(1-pAge).toFixed(2)+')'; ax.lineWidth=2;
+      ax.beginPath(); ax.arc(pokeFx.x*sc,pokeFx.y*sc,5+16*pAge,0,6.2832); ax.stroke();
+    }
+  }
   ax.restore(); ax.save();
   ax.fillStyle=css('--tx2')||'#888'; ax.font='10px sans-serif';
   var desc=(mode==='homog')?(geno+' on uniform '+subs)
@@ -2056,6 +2160,11 @@ function kymoColumn(H,o){
       jb.fillStyle=(dg>0?'rgba(29,158,117,':'rgba(216,90,48,')+m.toFixed(3)+')';
       jb.fillRect(xj,(i-1)*rowJ,1,rowJ+0.6);
     }
+  }
+  /* poke marker: a purple tick across the top of both kymographs */
+  if(H[o+82]>0){
+    kb.fillStyle='rgba(127,119,221,0.95)'; kb.fillRect(x,0,1,Math.max(6,row*0.6));
+    jb.fillStyle='rgba(127,119,221,0.95)'; jb.fillRect(xj,0,1,Math.max(6,rowJ*0.6));
   }
   kcur++; jcur++;
 }
@@ -2108,6 +2217,9 @@ function stats(){
   document.getElementById('s_dw').textContent=nv?(100*dDec/nv).toFixed(0):'\u2014';
   document.getElementById('s_wr').textContent=
     ['none','pause','turn','rev'][dTier]+' '+(100*dHabit).toFixed(0)+'%';
+  var tpT=dTouch>0.66?3:dTouch>0.33?2:dTouch>0.12?1:0;
+  document.getElementById('s_tp').textContent=
+    ['none','pause','turn','rev'][tpT]+' '+(100*dTouch).toFixed(0)+'%';
   document.getElementById('s_ha').textContent=ha.toFixed(0)+'\u00b0'+(Math.abs(ha)>37?' *':'');
   document.getElementById('s_mj').textContent=mj.toFixed(1)+'\u00b0';
   document.getElementById('s_tm').textContent=dT>30?(dTurns/(dT/60)).toFixed(2):'\u2014';
@@ -2249,32 +2361,72 @@ function setZoom(z,px,py){
   drawArena();
 }
 (function(){
-  var dragging=false, lastX=0, lastY=0, moved=false;
+  var dragging=false, lastX=0, lastY=0, moved=false, down=false, downX=0, downY=0, lastPokeAt=0;
+  function localXY(e){ var r=A.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; }
   A.addEventListener('wheel',function(e){
     e.preventDefault();
     var r=A.getBoundingClientRect();
     setZoom(zoom*(e.deltaY<0?1.15:1/1.15), e.clientX-r.left, e.clientY-r.top);
   },{passive:false});
   A.addEventListener('mousedown',function(e){
+    down=true; moved=false; downX=lastX=e.clientX; downY=lastY=e.clientY;
     if(zoom<=1.0001) return;
-    dragging=true; moved=false; lastX=e.clientX; lastY=e.clientY;
-    A.style.cursor='grabbing';
+    dragging=true;
   });
   window.addEventListener('mousemove',function(e){
-    if(!dragging) return;
+    if(!dragging){
+      /* hint that the larva can be clicked */
+      if(!down && e.target===A && !scrubbing && !imported){
+        var q=localXY(e); A.style.cursor=hitBody(q[0],q[1])?'crosshair':'';
+      }
+      return;
+    }
+    /* a few pixels of slack, so a click does not pan or switch Follow off */
+    if(!moved && Math.abs(e.clientX-downX)+Math.abs(e.clientY-downY)<=4) return;
+    if(!moved){ moved=true; A.style.cursor='grabbing'; }
     var dx=e.clientX-lastX, dy=e.clientY-lastY;
-    if(Math.abs(dx)+Math.abs(dy)>2) moved=true;
     lastX=e.clientX; lastY=e.clientY;
     if(follow){ follow=false; document.getElementById('foll').className=''; }
     if(panX<0){ panX=dCx||WW/2; panY=dCy||WH/2; }
     panX-=dx/vSc; panY-=dy/vSc;
     drawArena();
   });
-  window.addEventListener('mouseup',function(){
+  window.addEventListener('mouseup',function(e){
+    var click=down && !moved && e.target===A;
+    down=false;
     if(dragging){ dragging=false; A.style.cursor=''; }
+    if(!click || scrubbing || imported) return;
+    var q=localXY(e), hit=hitBody(q[0],q[1]);
+    if(!hit) return;
+    var now=performance.now();
+    if(now-lastPokeAt<250) return;      /* the second click of a double-click */
+    lastPokeAt=now;
+    poke(hit.region, hit.side, 'mouse');
+    pokeFx={x:hit.x, y:hit.y, at:now};
+    drawArena();
   });
-  A.addEventListener('dblclick',function(){ setZoom(1); });
+  A.addEventListener('dblclick',function(e){
+    var q=localXY(e);
+    if(!scrubbing && hitBody(q[0],q[1])) return;   /* double-clicking the larva is two pokes, not a zoom reset */
+    setZoom(1);
+  });
 })();
+/* Which part of the body a canvas point (CSS px) is on, or null. Nearest
+   point on the midline; a hit if within 0.5 mm or 8 px of it, whichever is
+   larger, since at full view the whole larva is only a few dozen pixels. */
+function hitBody(px,py){
+  var w=toWorld(px,py), best=1e9, bk=0, bu=0, bs=0;
+  for(var k=0;k<N;k++){
+    var a=world[k], b=world[k+1], ex=b[0]-a[0], ey=b[1]-a[1], L2=ex*ex+ey*ey||1e-9;
+    var u=Math.max(0,Math.min(1,((w[0]-a[0])*ex+(w[1]-a[1])*ey)/L2));
+    var dx=w[0]-(a[0]+u*ex), dy=w[1]-(a[1]+u*ey), d=Math.sqrt(dx*dx+dy*dy);
+    /* side from the cross product with the tail-to-head direction (-e) */
+    if(d<best){ best=d; bk=k; bu=u; bs=(-ex)*dy-(-ey)*dx; }
+  }
+  if(best>Math.max(0.5,8/vSc)) return null;
+  var pos=(bk+bu)/N;                          /* 0 head .. 1 tail */
+  return { region: pos<3/N?'head':(pos>=(N-2)/N?'tail':'mid'), side: bs>=0?1:-1, x:w[0], y:w[1] };
+}
 function pick(ids,on){ ids.forEach(function(i){ document.getElementById(i).className=(i===on)?'on':''; }); }
 var GB=['g_rov','g_sit'], SB=['s_agar','s_suc','s_yeast'], MB=['m_hom','m_p1','m_p2','m_p4'];
 document.getElementById('g_rov').onclick=function(){geno='rover';pick(GB,'g_rov');applyLocal(true);};
@@ -2563,6 +2715,10 @@ document.getElementById('figpdf').onclick=function(ev){
                    kind==='pdf'?'application/pdf':'image/svg+xml');
 };
 
+document.getElementById('pokes').onclick=function(){
+  dl(baseName()+'_pokes.csv','t_s,source,region,side,tier_before,touch_habit_before,response,state_before\n'+
+     pokeLog.map(function(r){return r.join(',');}).join('\n'));
+};
 document.getElementById('turns').onclick=function(){
   dl(baseName()+'_turns.csv','t_s,turn_angle_deg,n_sweeps,local_substrate\n'+
      turnLog.map(function(r){return r.join(',');}).join('\n'));
@@ -2775,6 +2931,8 @@ if(typeof globalThis!=='undefined' && typeof globalThis.__LARVA_HOOK==='function
     get strideMM(){return strideMM;}, get speedAvg(){return speedAvg;},
     get nDecide(){return nDecide;}, get nWander(){return nWander;},
     get habit(){return habit;}, get wallTier(){return wallTier;},
+    get pokeLog(){return pokeLog;}, get tHabit(){return tHabit;}, poke:poke,
+    get world(){return world;}, worldToScreen:function(x,y){ return [vTx+x*vSc, vTy+y*vSc]; },
     get curLocal(){return curLocal;},
     get WW(){return WW;}, get WH(){return WH;}, get mode(){return mode;},
     get subs(){return subs;}, patches:patches, SUBCOL:SUBCOL,
@@ -2949,6 +3107,17 @@ function makeRun(opt){
     nextT = (++sampleN)/trackHz;
   }
 
+  /* share of head pokes that got each response; reverse_extended counts as
+     reverse. null when there were no head pokes. */
+  function pokeSummary(hk){
+    var c={n:0,reverse:0,turn:0,pause:0,none:0};
+    hk.pokeLog.forEach(function(r){
+      if(r[2]!=='head') return; c.n++;
+      var k=(r[6]==='reverse_extended')?'reverse':r[6]; if(c[k]!==undefined) c[k]++;
+    });
+    ['reverse','turn','pause','none'].forEach(function(k){ c[k]=c.n?+(c[k]/c.n).toFixed(4):null; });
+    return c;
+  }
   function finish(){
     finished = true;
     var t = hook.t;
@@ -2973,7 +3142,13 @@ function makeRun(opt){
         n_decision_exits:hook.nDecide,
         n_wander_exits:hook.nWander,
         habituation_end:+hook.habit.toFixed(4),
-        wall_tier_end:hook.wallTier
+        wall_tier_end:hook.wallTier,
+        n_head_pokes:pokeSummary(hook).n,
+        poke_reverse_frac:pokeSummary(hook).reverse,
+        poke_turn_frac:pokeSummary(hook).turn,
+        poke_pause_frac:pokeSummary(hook).pause,
+        poke_none_frac:pokeSummary(hook).none,
+        touch_habit_end:+hook.tHabit.toFixed(4)
       },
       visits: hook.visitLog.map(function(r){
         return { t_enter_s:+r[0], residence_s:+r[1], substrate:r[2], quality:+r[3],
