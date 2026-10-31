@@ -1,5 +1,8 @@
 # Larval locomotion sandbox
 
+**▶ Run it in your browser: https://nvelichkova.github.io/Larval_locomotion_sandbox/**
+(the **Docs** button in the page explains every mechanism, with equations and code)
+
 An interactive, literature-parameterised model of *Drosophila melanogaster* third-instar larval
 crawling, head casting and substrate exploration. Single self-contained HTML file, no dependencies,
 no build step — open `larval_locomotion_sandbox.html` in any modern browser.
